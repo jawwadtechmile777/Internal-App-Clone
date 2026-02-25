@@ -41,18 +41,18 @@ export function OperationsCompleteModal({
   return (
     <Modal open={open} onClose={onClose} title="Mark complete">
       <div className="space-y-4">
-        <p className="text-sm text-slate-600">
-          Request <span className="font-mono">{row.id.slice(0, 8)}</span> — {row.entity?.name} / {row.player?.name}
+        <p className="text-sm text-gray-400">
+          Request <span className="font-mono text-gray-100">{row.id.slice(0, 8)}</span> — {row.entity?.name} / {row.player?.name}
         </p>
         {error && (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          <div className="rounded-lg bg-red-900/40 border border-red-800 px-3 py-2 text-sm text-red-300">{error}</div>
         )}
         {canComplete ? (
           <Button onClick={handleComplete} loading={loading}>
             Mark as completed
           </Button>
         ) : (
-          <p className="text-sm text-slate-500">Only requests in waiting_operations can be completed.</p>
+          <p className="text-sm text-gray-500">Only requests in waiting_operations can be completed.</p>
         )}
       </div>
     </Modal>

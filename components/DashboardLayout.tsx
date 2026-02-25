@@ -28,10 +28,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     : [];
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-slate-200 bg-white">
-        <div className="flex h-14 items-center border-b border-slate-200 px-4">
-          <span className="font-semibold text-slate-800">Internal App</span>
+    <div className="flex min-h-screen bg-slate-900">
+      <aside className="flex w-56 shrink-0 flex-col border-r border-gray-700 bg-slate-800/80">
+        <div className="flex h-14 items-center border-b border-gray-700 px-4">
+          <span className="font-semibold text-gray-100">Internal App</span>
         </div>
         <nav className="flex-1 p-2">
           {navItems.map((item) => (
@@ -40,16 +40,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               href={item.href}
               className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 pathname?.startsWith(item.href)
-                  ? "bg-slate-100 text-slate-900"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  ? "bg-slate-700 text-gray-100"
+                  : "text-gray-300 hover:bg-slate-700/60 hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-inset"
               }`}
             >
               {item.label}
             </Link>
           ))}
         </nav>
-        <div className="border-t border-slate-200 p-4">
-          <p className="truncate text-xs text-slate-500">{user?.department?.name ?? "—"}</p>
+        <div className="border-t border-gray-700 p-4">
+          <p className="truncate text-xs text-gray-500">{user?.department?.name ?? "—"}</p>
           <Button variant="ghost" size="sm" className="mt-2 w-full justify-start" onClick={() => signOut()}>
             Sign out
           </Button>

@@ -58,11 +58,11 @@ export function VerificationActionModal({
   return (
     <Modal open={open} onClose={onClose} title="Verification action">
       <div className="space-y-4">
-        <p className="text-sm text-slate-600">
-          Request <span className="font-mono">{row.id.slice(0, 8)}</span> — {row.entity?.name} / {row.player?.name}
+        <p className="text-sm text-gray-400">
+          Request <span className="font-mono text-gray-100">{row.id.slice(0, 8)}</span> — {row.entity?.name} / {row.player?.name}
         </p>
         {error && (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          <div className="rounded-lg bg-red-900/40 border border-red-800 px-3 py-2 text-sm text-red-300">{error}</div>
         )}
         {canAct && (
           <>
@@ -75,18 +75,18 @@ export function VerificationActionModal({
               </Button>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700">Reject remarks (optional)</label>
+              <label className="block text-sm font-medium text-gray-300">Reject remarks (optional)</label>
               <textarea
                 value={rejectRemarks}
                 onChange={(e) => setRejectRemarks(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-gray-600 bg-slate-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500"
                 rows={2}
               />
             </div>
           </>
         )}
         {!canAct && (
-          <p className="text-sm text-slate-500">This request is not pending verification (PT).</p>
+          <p className="text-sm text-gray-500">This request is not pending verification (PT).</p>
         )}
       </div>
     </Modal>

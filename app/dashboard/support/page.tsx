@@ -30,17 +30,17 @@ export default function SupportDashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-800">Support</h1>
+        <h1 className="text-2xl font-semibold text-gray-100">Support</h1>
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+          className="rounded-lg bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900"
         >
           Create request
         </button>
       </div>
       {error && (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-900/40 border border-red-800 px-4 py-3 text-sm text-red-300">
           {error.message}
         </div>
       )}
@@ -61,7 +61,7 @@ export default function SupportDashboardPage() {
               key={r.id}
               type="button"
               onClick={() => setSubmitPaymentRow(r)}
-              className="rounded bg-slate-700 px-2 py-1 text-xs text-white hover:bg-slate-600"
+              className="rounded bg-slate-600 px-2 py-1 text-xs text-white hover:bg-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500"
             >
               Submit payment
             </button>

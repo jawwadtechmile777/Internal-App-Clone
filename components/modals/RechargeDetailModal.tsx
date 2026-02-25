@@ -34,63 +34,63 @@ export function RechargeDetailModal({ open, onClose, row }: RechargeDetailModalP
     <Modal open={open} onClose={onClose} title="Recharge request details">
       <div className="space-y-4">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-          <dt className="text-slate-500">ID</dt>
-          <dd className="font-mono text-slate-800">{row.id}</dd>
-          <dt className="text-slate-500">Entity</dt>
-          <dd className="text-slate-800">{row.entity?.name ?? row.entity_id}</dd>
-          <dt className="text-slate-500">Player</dt>
-          <dd className="text-slate-800">{row.player?.name ?? row.player_id}</dd>
-          <dt className="text-slate-500">Amount</dt>
-          <dd className="text-slate-800">{formatAmount(row.amount)}</dd>
-          <dt className="text-slate-500">Bonus %</dt>
-          <dd className="text-slate-800">{row.bonus_percentage}%</dd>
-          <dt className="text-slate-500">Final amount</dt>
-          <dd className="text-slate-800">{formatAmount(row.final_amount)}</dd>
-          <dt className="text-slate-500">Tag</dt>
-          <dd className="text-slate-800">{row.tag_type ?? "—"}</dd>
-          <dt className="text-slate-500">Entity status</dt>
-          <dd className="text-slate-800">{row.entity_status ?? "—"}</dd>
-          <dt className="text-slate-500">Finance status</dt>
-          <dd className="text-slate-800">{row.finance_status ?? "—"}</dd>
-          <dt className="text-slate-500">Verification status</dt>
-          <dd className="text-slate-800">{row.verification_status}</dd>
-          <dt className="text-slate-500">Operations status</dt>
-          <dd className="text-slate-800">{row.operations_status ?? "—"}</dd>
-          <dt className="text-slate-500">Created</dt>
-          <dd className="text-slate-800">{formatDate(row.created_at)}</dd>
+          <dt className="text-gray-500">ID</dt>
+          <dd className="font-mono text-gray-100">{row.id}</dd>
+          <dt className="text-gray-500">Entity</dt>
+          <dd className="text-gray-100">{row.entity?.name ?? row.entity_id}</dd>
+          <dt className="text-gray-500">Player</dt>
+          <dd className="text-gray-100">{row.player?.name ?? row.player_id}</dd>
+          <dt className="text-gray-500">Amount</dt>
+          <dd className="text-gray-100">{formatAmount(row.amount)}</dd>
+          <dt className="text-gray-500">Bonus %</dt>
+          <dd className="text-gray-100">{row.bonus_percentage}%</dd>
+          <dt className="text-gray-500">Final amount</dt>
+          <dd className="text-gray-100">{formatAmount(row.final_amount)}</dd>
+          <dt className="text-gray-500">Tag</dt>
+          <dd className="text-gray-100">{row.tag_type ?? "—"}</dd>
+          <dt className="text-gray-500">Entity status</dt>
+          <dd className="text-gray-100">{row.entity_status ?? "—"}</dd>
+          <dt className="text-gray-500">Finance status</dt>
+          <dd className="text-gray-100">{row.finance_status ?? "—"}</dd>
+          <dt className="text-gray-500">Verification status</dt>
+          <dd className="text-gray-100">{row.verification_status}</dd>
+          <dt className="text-gray-500">Operations status</dt>
+          <dd className="text-gray-100">{row.operations_status ?? "—"}</dd>
+          <dt className="text-gray-500">Created</dt>
+          <dd className="text-gray-100">{formatDate(row.created_at)}</dd>
           {row.entity_payment_submitted_at && (
             <>
-              <dt className="text-slate-500">Payment submitted</dt>
-              <dd className="text-slate-800">{formatDate(row.entity_payment_submitted_at)}</dd>
+              <dt className="text-gray-500">Payment submitted</dt>
+              <dd className="text-gray-100">{formatDate(row.entity_payment_submitted_at)}</dd>
             </>
           )}
         </dl>
         {row.payment_method_account && (
           <div>
-            <h3 className="mb-1 text-sm font-medium text-slate-700">Payment account</h3>
-            <p className="text-sm text-slate-600">
+            <h3 className="mb-1 text-sm font-medium text-gray-300">Payment account</h3>
+            <p className="text-sm text-gray-400">
               {row.payment_method_account.account_name} — {row.payment_method_account.account_number}
               {row.payment_method_account.iban && ` (${row.payment_method_account.iban})`}
             </p>
-            <p className="text-sm text-slate-600">{row.payment_method_account.holder_name}</p>
+            <p className="text-sm text-gray-400">{row.payment_method_account.holder_name}</p>
           </div>
         )}
         {Object.keys(details).length > 0 && (
           <div>
-            <h3 className="mb-1 text-sm font-medium text-slate-700">Payment method details</h3>
-            <pre className="max-h-32 overflow-auto rounded bg-slate-100 p-2 text-xs text-slate-700">
+            <h3 className="mb-1 text-sm font-medium text-gray-300">Payment method details</h3>
+            <pre className="max-h-32 overflow-auto rounded bg-slate-900 p-2 text-xs text-gray-300 border border-gray-700">
               {JSON.stringify(details, null, 2)}
             </pre>
           </div>
         )}
         {row.remarks && (
           <div>
-            <h3 className="mb-1 text-sm font-medium text-slate-700">Remarks</h3>
-            <p className="text-sm text-slate-600">{row.remarks}</p>
+            <h3 className="mb-1 text-sm font-medium text-gray-300">Remarks</h3>
+            <p className="text-sm text-gray-400">{row.remarks}</p>
           </div>
         )}
         <div>
-          <h3 className="mb-1 text-sm font-medium text-slate-700">Payment proof</h3>
+          <h3 className="mb-1 text-sm font-medium text-gray-300">Payment proof</h3>
           <ScreenshotPreview url={row.entity_payment_proof_path} />
         </div>
       </div>

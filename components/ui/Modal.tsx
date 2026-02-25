@@ -28,27 +28,27 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden />
       <div
-        className="relative z-10 w-full max-w-lg rounded-xl bg-white shadow-xl"
+        className="relative z-10 w-full max-w-lg rounded-xl bg-slate-800 border border-gray-700 shadow-xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 id="modal-title" className="text-lg font-semibold text-slate-900">
+        <div className="flex items-center justify-between border-b border-gray-700 px-6 py-4">
+          <h2 id="modal-title" className="text-lg font-semibold text-gray-100">
             {title}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            className="rounded p-1 text-gray-400 hover:bg-slate-700 hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-800"
             aria-label="Close"
           >
             ×
           </button>
         </div>
-        <div className="max-h-[70vh] overflow-y-auto px-6 py-4">{children}</div>
+        <div className="max-h-[70vh] overflow-y-auto px-6 py-4 text-gray-300">{children}</div>
       </div>
     </div>
   );

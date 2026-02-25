@@ -45,19 +45,19 @@ export function FinanceVerifyModal({
   return (
     <Modal open={open} onClose={onClose} title="Finance verify (CT flow)">
       <div className="space-y-4">
-        <p className="text-sm text-slate-600">
-          Request <span className="font-mono">{row.id.slice(0, 8)}</span>
+        <p className="text-sm text-gray-400">
+          Request <span className="font-mono text-gray-100">{row.id.slice(0, 8)}</span>
         </p>
         <ScreenshotPreview url={row.entity_payment_proof_path} />
         {error && (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          <div className="rounded-lg bg-red-900/40 border border-red-800 px-3 py-2 text-sm text-red-300">{error}</div>
         )}
         {canVerify ? (
           <Button onClick={handleVerify} loading={loading}>
             Verify and send to Operations
           </Button>
         ) : (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-gray-500">
             Only CT requests with payment submitted can be verified here.
           </p>
         )}

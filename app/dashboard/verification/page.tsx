@@ -25,9 +25,9 @@ export default function VerificationDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-slate-800">Verification</h1>
+      <h1 className="text-2xl font-semibold text-gray-100">Verification</h1>
       {error && (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-900/40 border border-red-800 px-4 py-3 text-sm text-red-300">
           {error.message}
         </div>
       )}
@@ -43,7 +43,7 @@ export default function VerificationDashboardPage() {
             key={r.id}
             type="button"
             onClick={() => setActionRow(r)}
-            className="rounded bg-slate-700 px-2 py-1 text-xs text-white hover:bg-slate-600"
+            className="rounded bg-slate-600 px-2 py-1 text-xs text-white hover:bg-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500"
           >
             Action
           </button>

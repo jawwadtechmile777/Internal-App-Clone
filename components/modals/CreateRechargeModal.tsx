@@ -82,15 +82,15 @@ export function CreateRechargeModal({
     <Modal open={open} onClose={onClose} title="Create recharge request">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          <div className="rounded-lg bg-red-900/40 border border-red-800 px-3 py-2 text-sm text-red-300">{error}</div>
         )}
         <div>
-          <label className="block text-sm font-medium text-slate-700">Entity</label>
+          <label className="block text-sm font-medium text-gray-300">Entity</label>
           <select
             value={entityId}
             onChange={(e) => setEntityId(e.target.value)}
             required
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-gray-600 bg-slate-800 px-3 py-2 text-sm text-gray-100 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500"
           >
             <option value="">Select entity</option>
             {entities.map((e) => (
@@ -101,13 +101,13 @@ export function CreateRechargeModal({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Player</label>
+          <label className="block text-sm font-medium text-gray-300">Player</label>
           <select
             value={playerId}
             onChange={(e) => setPlayerId(e.target.value)}
             required
             disabled={!entityId}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50"
+            className="mt-1 w-full rounded-lg border border-gray-600 bg-slate-800 px-3 py-2 text-sm text-gray-100 disabled:opacity-50 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500"
           >
             <option value="">Select player</option>
             {players.map((p) => (
@@ -118,7 +118,7 @@ export function CreateRechargeModal({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Amount</label>
+          <label className="block text-sm font-medium text-gray-300">Amount</label>
           <input
             type="number"
             step="0.01"
@@ -126,26 +126,26 @@ export function CreateRechargeModal({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-gray-600 bg-slate-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Bonus %</label>
+          <label className="block text-sm font-medium text-gray-300">Bonus %</label>
           <input
             type="number"
             step="0.01"
             min="0"
             value={bonusPercentage}
             onChange={(e) => setBonusPercentage(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-gray-600 bg-slate-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Remarks</label>
+          <label className="block text-sm font-medium text-gray-300">Remarks</label>
           <textarea
             value={remarks}
             onChange={(e) => setRemarks(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-gray-600 bg-slate-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500"
             rows={2}
           />
         </div>

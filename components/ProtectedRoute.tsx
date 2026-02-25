@@ -34,8 +34,8 @@ export function ProtectedRoute({ children, executiveOnly = false }: ProtectedRou
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="text-slate-600">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center bg-slate-900">
+        <div className="text-gray-400">Loading...</div>
       </div>
     );
   }

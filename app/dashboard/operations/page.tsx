@@ -25,26 +25,26 @@ export default function OperationsDashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-800">Operations</h1>
+        <h1 className="text-2xl font-semibold text-gray-100">Operations</h1>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => setFilter("waiting_operations")}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${filter === "waiting_operations" ? "bg-slate-200 text-slate-800" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${filter === "waiting_operations" ? "bg-slate-600 text-white" : "bg-slate-800 text-gray-300 hover:bg-slate-700 hover:text-gray-100"}`}
           >
             Waiting
           </button>
           <button
             type="button"
             onClick={() => setFilter("completed")}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${filter === "completed" ? "bg-slate-200 text-slate-800" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${filter === "completed" ? "bg-slate-600 text-white" : "bg-slate-800 text-gray-300 hover:bg-slate-700 hover:text-gray-100"}`}
           >
             Completed
           </button>
         </div>
       </div>
       {error && (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-900/40 border border-red-800 px-4 py-3 text-sm text-red-300">
           {error.message}
         </div>
       )}
@@ -62,7 +62,7 @@ export default function OperationsDashboardPage() {
               key={r.id}
               type="button"
               onClick={() => setCompleteRow(r)}
-              className="rounded bg-slate-700 px-2 py-1 text-xs text-white hover:bg-slate-600"
+              className="rounded bg-slate-600 px-2 py-1 text-xs text-white hover:bg-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500"
             >
               Mark complete
             </button>

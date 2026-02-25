@@ -10,12 +10,12 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className = "", variant = "primary", size = "md", loading, disabled, children, ...props }, ref) => {
-    const base = "inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
+    const base = "inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:pointer-events-none";
     const variants = {
-      primary: "bg-slate-800 text-white hover:bg-slate-700 focus:ring-slate-500",
-      secondary: "bg-slate-100 text-slate-800 hover:bg-slate-200 focus:ring-slate-400",
-      destructive: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
-      ghost: "bg-transparent text-slate-700 hover:bg-slate-100 focus:ring-slate-400",
+      primary: "bg-slate-600 text-white hover:bg-slate-500 focus:ring-slate-500",
+      secondary: "bg-slate-700 text-gray-200 hover:bg-slate-600 focus:ring-slate-500",
+      destructive: "bg-red-600 text-white hover:bg-red-500 focus:ring-red-500",
+      ghost: "bg-transparent text-gray-300 hover:bg-slate-700 hover:text-gray-100 focus:ring-slate-500",
     };
     const sizes = {
       sm: "px-3 py-1.5 text-sm",

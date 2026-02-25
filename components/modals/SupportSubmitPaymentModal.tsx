@@ -45,22 +45,22 @@ export function SupportSubmitPaymentModal({
   return (
     <Modal open={open} onClose={onClose} title="Submit payment proof">
       <div className="space-y-4">
-        <p className="text-sm text-slate-600">
-          Request <span className="font-mono">{row.id.slice(0, 8)}</span>
+        <p className="text-sm text-gray-400">
+          Request <span className="font-mono text-gray-100">{row.id.slice(0, 8)}</span>
         </p>
         {error && (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          <div className="rounded-lg bg-red-900/40 border border-red-800 px-3 py-2 text-sm text-red-300">{error}</div>
         )}
         {canSubmit && (
           <>
             <div>
-              <label className="block text-sm font-medium text-slate-700">Payment proof URL / path</label>
+              <label className="block text-sm font-medium text-gray-300">Payment proof URL / path</label>
               <input
                 type="text"
                 value={proofPath}
                 onChange={(e) => setProofPath(e.target.value)}
                 placeholder="e.g. https://... or storage path"
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-gray-600 bg-slate-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500"
               />
             </div>
             <Button onClick={handleSubmit} loading={loading} disabled={!proofPath.trim() || loading}>
@@ -69,7 +69,7 @@ export function SupportSubmitPaymentModal({
           </>
         )}
         {!canSubmit && (
-          <p className="text-sm text-slate-500">Finance must approve before Support can submit payment.</p>
+          <p className="text-sm text-gray-500">Finance must approve before Support can submit payment.</p>
         )}
       </div>
     </Modal>

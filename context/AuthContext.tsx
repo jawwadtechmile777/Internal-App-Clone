@@ -89,13 +89,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
 
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!mounted) return;
-      if (!session?.user?.id) {
-        setState({ user: null, loading: false, error: null });
-        return;
-      }
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (!session?.user?.id) {
+          setState({ user: null, loading: false, error: null });
+          return;
+        }
         const profile = await fetchUserProfile(session.user.id);
         if (mounted) setState({ user: profile, loading: false, error: null });
       } catch (e) {
@@ -106,10 +106,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             error: e instanceof Error ? e : new Error(String(e)),
           });
         }
+      } finally {
+        if (mounted) setState((s) => ({ ...s, loading: false }));
       }
     };
 
     init();
+
+    const timeoutId = window.setTimeout(() => {
+      setState((s) => (s.loading ? { ...s, loading: false } : s));
+    }, 5000);
 
     const {
       data: { subscription },
@@ -135,6 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      window.clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, [supabase, fetchUserProfile]);
