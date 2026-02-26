@@ -3,15 +3,17 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { canAccessDashboardPath } from "@/lib/roleGuard";
+import { canAccessPath, getDefaultDashboardHref } from "@/lib/roleGuard";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  /** If true, only Executive can access (dashboard/executive/*). */
-  executiveOnly?: boolean;
 }
 
-export function ProtectedRoute({ children, executiveOnly = false }: ProtectedRouteProps) {
+/**
+ * Protects dashboard routes: redirects to login if unauthenticated,
+ * and to the user's own dashboard if they try to access another department's routes.
+ */
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
 
@@ -21,16 +23,10 @@ export function ProtectedRoute({ children, executiveOnly = false }: ProtectedRou
       window.location.href = "/login";
       return;
     }
-    if (executiveOnly) {
-      if (!canAccessDashboardPath(user, "/dashboard/executive")) {
-        window.location.href = "/unauthorized";
-      }
-      return;
+    if (pathname && pathname.startsWith("/dashboard") && !canAccessPath(user, pathname)) {
+      window.location.href = getDefaultDashboardHref(user);
     }
-    if (pathname && pathname.startsWith("/dashboard") && !canAccessDashboardPath(user, pathname)) {
-      window.location.href = "/unauthorized";
-    }
-  }, [user, loading, pathname, executiveOnly]);
+  }, [user, loading, pathname]);
 
   if (loading) {
     return (

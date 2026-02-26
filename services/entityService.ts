@@ -30,6 +30,16 @@ export async function fetchEntities(): Promise<EntityOption[]> {
   return (data ?? []) as EntityOption[];
 }
 
+export async function fetchEntityById(entityId: string): Promise<EntityOption | null> {
+  const { data, error } = await supabase
+    .from("entities")
+    .select("id, name, status")
+    .eq("id", entityId)
+    .single();
+  if (error || !data) return null;
+  return data as EntityOption;
+}
+
 export async function fetchPlayersByEntity(entityId: string | null): Promise<PlayerOption[]> {
   if (!entityId) return [];
   const { data, error } = await supabase

@@ -7,6 +7,12 @@ const supabaseKey =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   "";
 
+type CookieToSet = {
+  name: string;
+  value: string;
+  options?: Record<string, unknown>;
+};
+
 /**
  * Updates the Supabase auth session (refresh token), sets auth cookies,
  * and enforces route access: redirect to /login when unauthenticated on dashboard,
@@ -20,7 +26,7 @@ export async function updateSession(request: NextRequest) {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet: CookieToSet[]) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         supabaseResponse = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) =>

@@ -72,6 +72,7 @@ function mapRow(r: Record<string, unknown>): RechargeRequestRow {
 }
 
 export async function fetchRechargeRequests(filters?: {
+  entity_id?: string | null;
   entity_status?: string;
   finance_status?: string;
   verification_status?: string;
@@ -83,6 +84,7 @@ export async function fetchRechargeRequests(filters?: {
     .select(RECHARGE_SELECT)
     .order("created_at", { ascending: false });
 
+  if (filters?.entity_id != null) q = q.eq("entity_id", filters.entity_id);
   if (filters?.entity_status) q = q.eq("entity_status", filters.entity_status);
   if (filters?.finance_status) q = q.eq("finance_status", filters.finance_status);
   if (filters?.verification_status) q = q.eq("verification_status", filters.verification_status);

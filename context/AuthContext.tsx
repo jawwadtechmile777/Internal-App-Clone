@@ -3,7 +3,7 @@
 import React, { createContext, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseClient";
-import { setDepartmentNameById } from "@/lib/roleGuard";
+import { getDefaultDashboardHref } from "@/lib/roleGuard";
 import type { AuthUserProfile } from "@/types/user";
 import type { Department } from "@/types/department";
 
@@ -49,10 +49,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ? { id: (deptRow as { id: string }).id, name: (deptRow as { name: string }).name }
       : null;
 
-    if (department) {
-      setDepartmentNameById((userRow as { department_id: string }).department_id, department.name);
-    }
-
     const profile: AuthUserProfile = {
       id: (userRow as { id: string }).id,
       entity_id: (userRow as { entity_id: string | null }).entity_id,
@@ -66,14 +62,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase]);
 
   const refetchUser = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user?.id) {
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    if (authError || !authUser?.id) {
       setState((s) => ({ ...s, user: null, loading: false }));
       return;
     }
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
-      const profile = await fetchUserProfile(session.user.id);
+      const profile = await fetchUserProfile(authUser.id);
       setState((s) => ({ ...s, user: profile, loading: false }));
     } catch (e) {
       setState((s) => ({
@@ -90,13 +86,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const init = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // getUser() validates/refreshes session from server (cookies); getSession() is client-only and can be stale
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
         if (!mounted) return;
-        if (!session?.user?.id) {
+        if (authError || !authUser?.id) {
           setState({ user: null, loading: false, error: null });
           return;
         }
-        const profile = await fetchUserProfile(session.user.id);
+        const profile = await fetchUserProfile(authUser.id);
         if (mounted) setState({ user: profile, loading: false, error: null });
       } catch (e) {
         if (mounted) {
@@ -157,29 +154,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.session?.user?.id) {
         const profile = await fetchUserProfile(data.session.user.id);
         setState((s) => ({ ...s, user: profile, loading: false }));
-        const dept = profile?.department?.name ?? "";
-        if (dept === "Executive") {
-          router.replace("/dashboard/executive");
-        } else if (dept === "Finance") {
-          router.replace("/dashboard/finance");
-        } else if (dept === "Verification") {
-          router.replace("/dashboard/verification");
-        } else if (dept === "Operations") {
-          router.replace("/dashboard/operations");
-        } else if (dept === "Support") {
-          router.replace("/dashboard/support");
-        } else {
-          router.replace("/dashboard");
-        }
+        const href = getDefaultDashboardHref(profile ?? null);
+        router.replace(href);
       }
     },
     [supabase, fetchUserProfile, router]
   );
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setState({ user: null, loading: false, error: null });
-    router.replace("/login");
+    try {
+      // Clear cookie-based session so middleware no longer treats user as authenticated.
+      await fetch("/auth/signout", { method: "POST", credentials: "include" });
+    } finally {
+      // Best-effort local cleanup (covers any in-memory/local storage state).
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+      setState({ user: null, loading: false, error: null });
+      router.replace("/login");
+      router.refresh();
+    }
   }, [supabase, router]);
 
   const value: AuthContextValue = {

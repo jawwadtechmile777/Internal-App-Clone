@@ -12,6 +12,8 @@ interface CreateRechargeModalProps {
   onClose: () => void;
   requestedByUserId: string;
   onCreated: () => void;
+  /** When set (e.g. Support Admin), only this entity can be selected. */
+  restrictedEntityId?: string | null;
 }
 
 export function CreateRechargeModal({
@@ -19,6 +21,7 @@ export function CreateRechargeModal({
   onClose,
   requestedByUserId,
   onCreated,
+  restrictedEntityId,
 }: CreateRechargeModalProps) {
   const [entities, setEntities] = useState<entityService.EntityOption[]>([]);
   const [players, setPlayers] = useState<entityService.PlayerOption[]>([]);
@@ -32,8 +35,18 @@ export function CreateRechargeModal({
 
   useEffect(() => {
     if (!open) return;
-    entityService.fetchEntities().then(setEntities).catch(() => setEntities([]));
-  }, [open]);
+    if (restrictedEntityId) {
+      entityService.fetchEntityById(restrictedEntityId).then((e) => setEntities(e ? [e] : []));
+    } else {
+      entityService.fetchEntities().then(setEntities).catch(() => setEntities([]));
+    }
+  }, [open, restrictedEntityId]);
+
+  useEffect(() => {
+    if (open && restrictedEntityId && entities.length === 1) {
+      setEntityId(entities[0].id);
+    }
+  }, [open, restrictedEntityId, entities]);
 
   useEffect(() => {
     if (!entityId) {
@@ -90,7 +103,8 @@ export function CreateRechargeModal({
             value={entityId}
             onChange={(e) => setEntityId(e.target.value)}
             required
-            className="mt-1 w-full rounded-lg border border-gray-600 bg-slate-800 px-3 py-2 text-sm text-gray-100 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500"
+            disabled={!!restrictedEntityId && entities.length === 1}
+            className="mt-1 w-full rounded-lg border border-gray-600 bg-slate-800 px-3 py-2 text-sm text-gray-100 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-70"
           >
             <option value="">Select entity</option>
             {entities.map((e) => (

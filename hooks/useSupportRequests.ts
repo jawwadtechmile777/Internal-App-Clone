@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import * as supportService from "@/services/supportService";
 import type { RechargeRequestRow } from "@/types/recharge";
 
-export function useSupportRequests(filters?: { entity_status?: string }) {
+export function useSupportRequests(filters?: { entity_id?: string | null; entity_status?: "pending" | "payment_submitted" }) {
   const [data, setData] = useState<RechargeRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -20,7 +20,7 @@ export function useSupportRequests(filters?: { entity_status?: string }) {
     } finally {
       setLoading(false);
     }
-  }, [filters?.entity_status]);
+  }, [filters?.entity_id, filters?.entity_status]);
 
   useEffect(() => {
     refetch();

@@ -1,66 +1,34 @@
-import type { DepartmentName } from "@/types/department";
+/**
+ * Role-based access control using public.users + departments (role source of truth).
+ * All logic delegates to lib/roleConfig.ts; no hardcoded roles here.
+ */
+import {
+  normalizeDepartmentSlug,
+  canAccessPath as configCanAccessPath,
+  getDefaultDashboardHref as configGetDefaultDashboardHref,
+  type DepartmentSlug,
+} from "@/lib/roleConfig";
 import type { AppUser } from "@/types/user";
 
-export type AllowedRole = DepartmentName | "admin" | "executive";
-
-const DEPARTMENT_NAME_BY_ID = new Map<string, string>();
-
-export function setDepartmentNameById(id: string, name: string): void {
-  DEPARTMENT_NAME_BY_ID.set(id, name);
+/** Resolve department slug from user (public.users + departments join). */
+export function getDepartmentSlug(user: AppUser | null): DepartmentSlug | null {
+  if (!user) return null;
+  const name = user.department?.name ?? null;
+  return normalizeDepartmentSlug(name);
 }
 
-export function getDepartmentNameById(id: string): string | undefined {
-  return DEPARTMENT_NAME_BY_ID.get(id);
+/** User can access this path (enforced by department). */
+export function canAccessPath(user: AppUser | null, path: string): boolean {
+  const slug = getDepartmentSlug(user);
+  if (!slug) return false;
+  return configCanAccessPath(slug, path);
 }
 
-export function getDepartmentName(user: AppUser): DepartmentName | null {
-  const name = user.department?.name ?? getDepartmentNameById(user.department_id);
-  if (!name) return null;
-  const allowed: DepartmentName[] = ["Support", "Finance", "Verification", "Operations", "Executive"];
-  return allowed.includes(name as DepartmentName) ? (name as DepartmentName) : null;
+/** Redirect target when user has no access (their own dashboard). */
+export function getDefaultDashboardHref(user: AppUser | null): string {
+  const slug = getDepartmentSlug(user);
+  if (!slug) return "/dashboard";
+  return configGetDefaultDashboardHref(slug);
 }
 
-export function isExecutive(user: AppUser): boolean {
-  const dept = getDepartmentName(user);
-  return dept === "Executive" || user.role === "executive";
-}
-
-export function isAdmin(user: AppUser): boolean {
-  return user.role === "admin" || isExecutive(user);
-}
-
-export function canAccessFinanceDashboard(user: AppUser): boolean {
-  const dept = getDepartmentName(user);
-  return dept === "Finance" || isExecutive(user);
-}
-
-export function canAccessVerificationDashboard(user: AppUser): boolean {
-  const dept = getDepartmentName(user);
-  return dept === "Verification" || isExecutive(user);
-}
-
-export function canAccessOperationsDashboard(user: AppUser): boolean {
-  const dept = getDepartmentName(user);
-  return dept === "Operations" || isExecutive(user);
-}
-
-export function canAccessSupportDashboard(user: AppUser): boolean {
-  const dept = getDepartmentName(user);
-  return dept === "Support" || isExecutive(user);
-}
-
-export function canAccessExecutiveDashboard(user: AppUser): boolean {
-  return isExecutive(user);
-}
-
-export function canAccessDashboardPath(
-  user: AppUser,
-  path: string
-): boolean {
-  if (path.startsWith("/dashboard/executive")) return canAccessExecutiveDashboard(user);
-  if (path.startsWith("/dashboard/finance")) return canAccessFinanceDashboard(user);
-  if (path.startsWith("/dashboard/verification")) return canAccessVerificationDashboard(user);
-  if (path.startsWith("/dashboard/operations")) return canAccessOperationsDashboard(user);
-  if (path.startsWith("/dashboard/support")) return canAccessSupportDashboard(user);
-  return false;
-}
+export type { DepartmentSlug };

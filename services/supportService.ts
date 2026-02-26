@@ -1,11 +1,17 @@
 import type { RechargeRequestRow } from "@/types/recharge";
 
-/** List recharge requests that Support can act on: created by them or pending payment submission (finance approved, waiting for screenshot). */
+/**
+ * List recharge requests that Support can act on.
+ * When entity_id is provided (Support Admin), only requests for that entity are returned.
+ * When entity_id is omitted (e.g. Executive), all entities are returned.
+ */
 export async function fetchSupportRechargeRequests(filters?: {
+  entity_id?: string | null;
   entity_status?: "pending" | "payment_submitted";
 }): Promise<RechargeRequestRow[]> {
   const { fetchRechargeRequests } = await import("./rechargeService");
   return fetchRechargeRequests({
+    entity_id: filters?.entity_id,
     entity_status: filters?.entity_status,
   });
 }

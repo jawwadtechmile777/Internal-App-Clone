@@ -5,6 +5,7 @@ import * as rechargeService from "@/services/rechargeService";
 import type { RechargeRequestRow } from "@/types/recharge";
 
 export interface UseRechargeRequestsFilters {
+  entity_id?: string | null;
   entity_status?: string;
   finance_status?: string;
   verification_status?: string;
@@ -29,6 +30,7 @@ export function useRechargeRequests(filters?: UseRechargeRequestsFilters) {
       setLoading(false);
     }
   }, [
+    filters?.entity_id,
     filters?.entity_status,
     filters?.finance_status,
     filters?.verification_status,

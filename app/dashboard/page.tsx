@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { getDepartmentName, canAccessExecutiveDashboard } from "@/lib/roleGuard";
+import { getDefaultDashboardHref, getDepartmentSlug } from "@/lib/roleGuard";
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -11,17 +11,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (loading || !user) return;
-    const dept = getDepartmentName(user);
-    if (canAccessExecutiveDashboard(user)) {
-      router.replace("/dashboard/executive");
-    } else if (dept === "Finance") {
-      router.replace("/dashboard/finance");
-    } else if (dept === "Verification") {
-      router.replace("/dashboard/verification");
-    } else if (dept === "Operations") {
-      router.replace("/dashboard/operations");
-    } else if (dept === "Support") {
-      router.replace("/dashboard/support");
+    const slug = getDepartmentSlug(user);
+    if (slug) {
+      router.replace(getDefaultDashboardHref(user));
     } else {
       router.replace("/unauthorized");
     }

@@ -7,7 +7,9 @@ import { SupportSubmitPaymentModal } from "@/components/modals/SupportSubmitPaym
 import { CreateRechargeModal } from "@/components/modals/CreateRechargeModal";
 import { useSupportRequests } from "@/hooks/useSupportRequests";
 import { useAuth } from "@/hooks/useAuth";
+import { getDepartmentSlug } from "@/lib/roleGuard";
 import * as supportService from "@/services/supportService";
+import { isSupportSlug } from "@/lib/roleConfig";
 import type { RechargeRequestRow } from "@/types/recharge";
 
 export default function SupportDashboardPage() {
@@ -15,8 +17,10 @@ export default function SupportDashboardPage() {
   const [submitPaymentRow, setSubmitPaymentRow] = useState<RechargeRequestRow | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const { user } = useAuth();
+  const slug = getDepartmentSlug(user ?? null);
+  const entityId = slug && isSupportSlug(slug) ? user?.entity_id ?? undefined : undefined;
 
-  const { data, loading, error, refetch } = useSupportRequests();
+  const { data, loading, error, refetch } = useSupportRequests({ entity_id: entityId });
 
   const handleSubmitPayment = async (
     requestId: string,
@@ -80,6 +84,7 @@ export default function SupportDashboardPage() {
           onClose={() => setCreateOpen(false)}
           requestedByUserId={user.id}
           onCreated={refetch}
+          restrictedEntityId={entityId}
         />
       )}
     </div>
