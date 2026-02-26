@@ -1,1 +1,5 @@
-export { default } from "../../finance/page";
+import { redirect } from "next/navigation";
+
+export default function ExecutiveFinancePage() {
+  redirect("/dashboard/executive/finance/recharge-requests");
+}

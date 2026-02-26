@@ -10,6 +10,7 @@ const ALLOWED_OPERATIONS_TRANSITIONS: Record<
   waiting_operations: ["completed"],
   completed: [],
   rejected: [],
+  cancelled: [],
 };
 
 /** Allowed verification_status transitions. */

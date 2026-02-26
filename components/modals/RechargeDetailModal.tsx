@@ -28,7 +28,7 @@ function formatAmount(n: number | null): string {
 export function RechargeDetailModal({ open, onClose, row }: RechargeDetailModalProps) {
   if (!row) return null;
 
-  const details = safeParsePaymentDetails(row.player_payment_method?.details);
+  const details = safeParsePaymentDetails(row.payment_method?.details);
 
   return (
     <Modal open={open} onClose={onClose} title="Recharge request details">

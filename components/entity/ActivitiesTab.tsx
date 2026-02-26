@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { RequestsTable, type RequestTableRow } from "@/components/entity/RequestsTable";
+import { RechargeRequestsTable } from "@/components/entity/RechargeRequestsTable";
 import { useRechargeRequests } from "@/hooks/useRechargeRequests";
 import { useRedeemRequests } from "@/hooks/useRedeemRequests";
 import { useRequests } from "@/hooks/useRequests";
@@ -11,10 +12,12 @@ import type { RedeemRequestRow } from "@/types/redeem";
 import type { AppRequestRow } from "@/types/request";
 import { RechargeDetailModal } from "@/components/modals/RechargeDetailModal";
 import { RedeemDetailModal } from "@/components/modals/RedeemDetailModal";
-import { CreateRechargeModal } from "@/components/modals/CreateRechargeModal";
+import { CreateRechargeRequestModal } from "@/components/modals/CreateRechargeRequestModal";
 import { CreateRedeemModal } from "@/components/modals/CreateRedeemModal";
 import { CreateRequestModal, type GenericRequestKey, GENERIC_REQUEST_LABEL_BY_KEY } from "@/components/modals/CreateRequestModal";
 import { RequestDetailModal } from "@/components/modals/RequestDetailModal";
+import { SupportSubmitPaymentModal } from "@/components/modals/SupportSubmitPaymentModal";
+import * as supportService from "@/services/supportService";
 
 type ActivityListTab =
   | "recharge"
@@ -52,6 +55,7 @@ export function ActivitiesTab({ entityId, actorUserId, restrictedEntityId }: Act
   const [rechargeDetail, setRechargeDetail] = useState<RechargeRequestRow | null>(null);
   const [redeemDetail, setRedeemDetail] = useState<RedeemRequestRow | null>(null);
   const [requestDetail, setRequestDetail] = useState<AppRequestRow | null>(null);
+  const [submitPaymentRow, setSubmitPaymentRow] = useState<RechargeRequestRow | null>(null);
   const [createRechargeOpen, setCreateRechargeOpen] = useState(false);
   const [createRedeemOpen, setCreateRedeemOpen] = useState(false);
   const [createRequestKey, setCreateRequestKey] = useState<GenericRequestKey | null>(null);
@@ -151,24 +155,18 @@ export function ActivitiesTab({ entityId, actorUserId, restrictedEntityId }: Act
       </div>
 
       {listTab === "recharge" && (
-        <RequestsTable
-          headerContent={headerTabs}
-          rows={rechargeRows}
-          loading={recharge.loading}
-          emptyMessage="No recharge requests for this entity."
-          renderActions={(row) => (
-            <button
-              type="button"
-              onClick={() => {
-                const full = recharge.data.find((x) => x.id === row.id) ?? null;
-                setRechargeDetail(full);
-              }}
-              className="rounded bg-slate-700 px-2 py-1 text-xs text-white hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500"
-            >
-              View
-            </button>
-          )}
-        />
+        <div className="space-y-3">
+          <div className="rounded-xl border border-gray-700 bg-slate-800/50 px-4 py-3">
+            {headerTabs}
+          </div>
+          <RechargeRequestsTable
+            rows={recharge.data}
+            loading={recharge.loading}
+            showSubmitPayment={!!restrictedEntityId}
+            onView={(row) => setRechargeDetail(row)}
+            onSubmitPayment={(row) => setSubmitPaymentRow(row)}
+          />
+        </div>
       )}
 
       {listTab === "redeem" && (
@@ -226,13 +224,22 @@ export function ActivitiesTab({ entityId, actorUserId, restrictedEntityId }: Act
       <RechargeDetailModal open={!!rechargeDetail} onClose={() => setRechargeDetail(null)} row={rechargeDetail} />
       <RedeemDetailModal open={!!redeemDetail} onClose={() => setRedeemDetail(null)} row={redeemDetail} />
       <RequestDetailModal open={!!requestDetail} onClose={() => setRequestDetail(null)} row={requestDetail} />
+      <SupportSubmitPaymentModal
+        open={!!submitPaymentRow}
+        onClose={() => setSubmitPaymentRow(null)}
+        row={submitPaymentRow}
+        onSubmit={async (requestId, proofPath, accountId) => {
+          await supportService.supportSubmitPaymentProof(requestId, proofPath, accountId);
+          await recharge.refetch();
+        }}
+      />
 
-      <CreateRechargeModal
+      <CreateRechargeRequestModal
         open={createRechargeOpen}
         onClose={() => setCreateRechargeOpen(false)}
+        entityId={restrictedEntityId ?? entityId}
         requestedByUserId={actorUserId}
         onCreated={() => recharge.refetch()}
-        restrictedEntityId={restrictedEntityId ?? entityId}
       />
       <CreateRedeemModal
         open={createRedeemOpen}

@@ -58,25 +58,37 @@ function ChevronUpIcon({ className = "" }: { className?: string }) {
   );
 }
 
-function SidebarNavItem({ item, pathname }: { item: SidebarItem; pathname: string | null }) {
-  if (item.type === "link") {
-    const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(item.href));
-    return (
-      <Link
-        href={item.href}
-        className={linkBase + (isActive ? linkActive : linkInactive)}
-      >
-        {item.label}
-      </Link>
-    );
-  }
+function SidebarLinkItem({
+  item,
+  pathname,
+}: {
+  item: Extract<SidebarItem, { type: "link" }>;
+  pathname: string | null;
+}) {
+  const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(item.href));
+  return (
+    <Link href={item.href} className={linkBase + (isActive ? linkActive : linkInactive)}>
+      {item.label}
+    </Link>
+  );
+}
+
+function SidebarDropdownItem({
+  item,
+  pathname,
+}: {
+  item: Extract<SidebarItem, { type: "dropdown" }>;
+  pathname: string | null;
+}) {
   const isDropdownActive = item.children.some(
     (c) => pathname === c.href || (c.href !== "/dashboard" && pathname?.startsWith(c.href))
   );
+
   const [open, setOpen] = useState(isDropdownActive);
   useEffect(() => {
     if (isDropdownActive) setOpen(true);
   }, [isDropdownActive]);
+
   const expanded = open || isDropdownActive;
   return (
     <div className="space-y-1">
@@ -87,11 +99,9 @@ function SidebarNavItem({ item, pathname }: { item: SidebarItem; pathname: strin
         className={linkBase + linkInactive + " w-full text-left flex items-center justify-between"}
       >
         <span>{item.label}</span>
-        <span className="text-gray-500">
-          {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-        </span>
+        <span className="text-gray-500">{expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}</span>
       </button>
-      {expanded && (
+      {expanded ? (
         <div className="ml-3 space-y-0.5 border-l border-gray-700 pl-2">
           {item.children.map((child) => {
             const isChildActive =
@@ -107,8 +117,16 @@ function SidebarNavItem({ item, pathname }: { item: SidebarItem; pathname: strin
             );
           })}
         </div>
-      )}
+      ) : null}
     </div>
+  );
+}
+
+function SidebarNavItem({ item, pathname }: { item: SidebarItem; pathname: string | null }) {
+  return item.type === "link" ? (
+    <SidebarLinkItem item={item} pathname={pathname} />
+  ) : (
+    <SidebarDropdownItem item={item} pathname={pathname} />
   );
 }
 

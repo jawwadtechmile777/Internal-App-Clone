@@ -82,7 +82,10 @@ const SIDEBAR_CONFIG: Record<DepartmentSlug, SidebarItem[]> = {
     {
       type: "dropdown",
       label: "Finance",
-      children: [{ label: "Overview", href: "/dashboard/executive/finance" }],
+      children: [
+        { label: "Recharge requests", href: "/dashboard/executive/finance/recharge-requests" },
+        { label: "Overview", href: "/dashboard/executive/finance" },
+      ],
     },
     {
       type: "dropdown",
@@ -108,7 +111,10 @@ const SIDEBAR_CONFIG: Record<DepartmentSlug, SidebarItem[]> = {
     {
       type: "dropdown",
       label: "Finance",
-      children: [{ label: "Overview", href: "/dashboard/finance" }],
+      children: [
+        { label: "Recharge requests", href: "/dashboard/finance/recharge-requests" },
+        { label: "Overview", href: "/dashboard/finance" },
+      ],
     },
   ],
   operations: [
