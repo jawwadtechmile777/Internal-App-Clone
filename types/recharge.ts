@@ -54,6 +54,7 @@ export interface RechargeRequestRow {
   entity_payment_proof_path: string | null;
   entity_payment_submitted_at: string | null;
   tag_type: RechargeTagType | null;
+  pt_redeem_id: string | null;
   // Joined relations
   entity?: { id: string; name: string; status: string } | null;
   player?: { id: string; name: string; entity_id: string; status: string } | null;
@@ -95,6 +96,8 @@ export interface RechargeRequestUpdateInput {
   payment_method_account_id?: string | null;
   entity_payment_proof_path?: string | null;
   entity_payment_submitted_at?: string | null;
+  pt_redeem_id?: string | null;
+  player_payment_method_id?: string | null;
   remarks?: string | null;
   updated_at?: string;
 }

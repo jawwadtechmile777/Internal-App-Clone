@@ -11,6 +11,7 @@ export interface RedeemRequestRow {
   player_id: string;
   entity_id: string;
   game_id: string | null;
+  payment_method_id: string | null;
   total_amount: number;
   paid_amount: number;
   hold_amount: number;
@@ -28,6 +29,7 @@ export interface RedeemRequestRow {
   player?: { id: string; name: string; entity_id: string } | null;
   entity?: { id: string; name: string } | null;
   game?: { id: string; name: string } | null;
+  payment_method?: { id: string; method_name: string; details: Record<string, unknown> } | null;
 }
 
 export interface RedeemRequestCreateInput {

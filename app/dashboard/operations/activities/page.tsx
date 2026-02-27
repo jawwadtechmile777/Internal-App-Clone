@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { OperationsRechargeRequestsTable } from "@/components/operations/OperationsRechargeRequestsTable";
+import { FinanceRedeemRequestsTable } from "@/components/finance/FinanceRedeemRequestsTable";
 import { RequestsTable, type RequestTableRow } from "@/components/entity/RequestsTable";
 import { RechargeDetailModal } from "@/components/modals/RechargeDetailModal";
 import { OperationsCompleteModal } from "@/components/modals/OperationsCompleteModal";
@@ -199,29 +200,11 @@ export default function OperationsActivitiesPage() {
               {redeemQuery.error instanceof Error ? redeemQuery.error.message : "Failed to load redeem requests."}
             </div>
           ) : null}
-          <RequestsTable
-            headerContent={headerTabs}
-            rows={(redeemQuery.data?.rows ?? []).map<RequestTableRow>((r) => ({
-              id: r.id,
-              player: `${r.entity?.name ?? r.entity_id} • ${r.player?.name ?? r.player_id}`,
-              amount: formatAmount(r.total_amount),
-              status: r.status ?? "pending",
-              created_at: r.created_at,
-            }))}
+          <FinanceRedeemRequestsTable
+            rows={redeemQuery.data?.rows ?? []}
             loading={redeemQuery.isLoading && !redeemQuery.data}
             emptyMessage="No redeem requests."
-            renderActions={(row) => (
-              <button
-                type="button"
-                onClick={() => {
-                  const full = (redeemQuery.data?.rows ?? []).find((x) => x.id === row.id) ?? null;
-                  setRedeemDetail(full);
-                }}
-                className="rounded bg-slate-700 px-2 py-1 text-xs text-white hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500"
-              >
-                View
-              </button>
-            )}
+            onView={(row) => setRedeemDetail(row)}
           />
         </>
       ) : (

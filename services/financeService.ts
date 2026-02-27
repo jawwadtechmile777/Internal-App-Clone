@@ -181,3 +181,21 @@ export async function financeRejectVerification(requestId: string, reason: strin
     remarks: reason.trim() || row.remarks,
   });
 }
+
+/**
+ * Finance: approve recharge with PT tag linked to a redeem request.
+ * Uses Supabase RPC for atomic transaction — both tables updated in a single call.
+ */
+export async function financeApprovePT(params: {
+  rechargeId: string;
+  redeemId: string;
+}): Promise<void> {
+  const { error } = await supabase.rpc("finance_approve_pt", {
+    p_recharge_id: params.rechargeId,
+    p_redeem_id: params.redeemId,
+  });
+  if (error) {
+    const msg = error.message || "PT approval transaction failed";
+    throw new Error(msg);
+  }
+}

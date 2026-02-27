@@ -178,3 +178,46 @@ export function useFinanceRejectRechargeRequest() {
   });
 }
 
+export function useFinanceApprovePTRechargeRequest() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (vars: { rechargeId: string; redeemId: string }) => {
+      await financeService.financeApprovePT(vars);
+      return vars;
+    },
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["financeRechargeRequests"] });
+      const prev: PrevQueries = qc.getQueriesData<ListData>({
+        queryKey: ["financeRechargeRequests"],
+      });
+      const now = new Date().toISOString();
+
+      prev.forEach(([key, data]) => {
+        qc.setQueryData(
+          key,
+          patchRow(data, vars.rechargeId, {
+            finance_status: "approved",
+            entity_status: "payment pending",
+            verification_status: "pending",
+            operations_status: "pending",
+            tag_type: "PT",
+            pt_redeem_id: vars.redeemId,
+            updated_at: now,
+          })
+        );
+      });
+
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      ctx?.prev.forEach(([key, data]) => qc.setQueryData(key, data));
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["financeRechargeRequests"] });
+      qc.invalidateQueries({ queryKey: ["financeRedeemRequests"] });
+      qc.invalidateQueries({ queryKey: ["eligiblePTRedeems"] });
+    },
+  });
+}
+

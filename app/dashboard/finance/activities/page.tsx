@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { FinanceRechargeRequestsTable } from "@/components/finance/FinanceRechargeRequestsTable";
+import { FinanceRedeemRequestsTable } from "@/components/finance/FinanceRedeemRequestsTable";
 import { RequestsTable, type RequestTableRow } from "@/components/entity/RequestsTable";
 import { RechargeDetailModal } from "@/components/modals/RechargeDetailModal";
 import { AssignPaymentAccountModal } from "@/components/modals/AssignPaymentAccountModal";
@@ -15,6 +16,7 @@ import {
   useFinanceRejectRechargeRequest,
   useFinanceVerifyPaymentRechargeRequest,
   useFinanceRejectVerificationRechargeRequest,
+  useFinanceApprovePTRechargeRequest,
 } from "@/hooks/useFinanceRechargeMutations";
 import { useToast } from "@/hooks/useToast";
 import type { RechargeFinanceStatus, RechargeRequestRow } from "@/types/recharge";
@@ -67,21 +69,26 @@ export default function FinanceActivitiesPage() {
   );
 
   const approveMutation = useFinanceApproveRechargeRequest();
+  const approvePTMutation = useFinanceApprovePTRechargeRequest();
   const rejectMutation = useFinanceRejectRechargeRequest();
   const verifyMutation = useFinanceVerifyPaymentRechargeRequest();
   const rejectVerificationMutation = useFinanceRejectVerificationRechargeRequest();
 
+  const approveLoading = approveMutation.isPending || approvePTMutation.isPending;
+
   const busyId =
     approveMutation.isPending
       ? approveMutation.variables?.requestId ?? null
-      : rejectMutation.isPending
-        ? rejectMutation.variables?.requestId ?? null
-        : verifyMutation.isPending
-          ? verifyMutation.variables?.requestId ?? null
-          : rejectVerificationMutation.isPending
-            ? rejectVerificationMutation.variables?.requestId ?? null
-            : null;
-  const busyAction = approveMutation.isPending
+      : approvePTMutation.isPending
+        ? approvePTMutation.variables?.rechargeId ?? null
+        : rejectMutation.isPending
+          ? rejectMutation.variables?.requestId ?? null
+          : verifyMutation.isPending
+            ? verifyMutation.variables?.requestId ?? null
+            : rejectVerificationMutation.isPending
+              ? rejectVerificationMutation.variables?.requestId ?? null
+              : null;
+  const busyAction = approveMutation.isPending || approvePTMutation.isPending
     ? "approve"
     : rejectMutation.isPending
       ? "reject"
@@ -226,29 +233,11 @@ export default function FinanceActivitiesPage() {
               {redeemQuery.error instanceof Error ? redeemQuery.error.message : "Failed to load redeem requests."}
             </div>
           ) : null}
-          <RequestsTable
-            headerContent={headerTabs}
-            rows={(redeemQuery.data?.rows ?? []).map<RequestTableRow>((r) => ({
-              id: r.id,
-              player: `${r.entity?.name ?? r.entity_id} • ${r.player?.name ?? r.player_id}`,
-              amount: formatAmount(r.total_amount),
-              status: r.status ?? "pending",
-              created_at: r.created_at,
-            }))}
+          <FinanceRedeemRequestsTable
+            rows={redeemQuery.data?.rows ?? []}
             loading={redeemQuery.isLoading && !redeemQuery.data}
             emptyMessage="No redeem requests."
-            renderActions={(row) => (
-              <button
-                type="button"
-                onClick={() => {
-                  const full = (redeemQuery.data?.rows ?? []).find((x) => x.id === row.id) ?? null;
-                  setRedeemDetail(full);
-                }}
-                className="rounded bg-slate-700 px-2 py-1 text-xs text-white hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500"
-              >
-                View
-              </button>
-            )}
+            onView={(row) => setRedeemDetail(row)}
           />
         </>
       ) : (
@@ -318,18 +307,32 @@ export default function FinanceActivitiesPage() {
       <AssignPaymentAccountModal
         open={!!approveRow}
         row={approveRow}
-        loading={approveMutation.isPending}
-        onConfirm={async (paymentMethodAccountId) => {
+        loading={approveLoading}
+        onConfirmCT={async (paymentMethodAccountId) => {
           if (!approveRow) return;
           try {
             await approveMutation.mutateAsync({ requestId: approveRow.id, paymentMethodAccountId });
-            showToast({ variant: "success", title: "Approved", description: "Payment account assigned and approved." });
+            showToast({ variant: "success", title: "Approved (CT)", description: "Payment account assigned and approved." });
             setApproveRow(null);
           } catch (e) {
             showToast({
               variant: "error",
               title: "Approve failed",
               description: e instanceof Error ? e.message : "Unable to approve request.",
+            });
+          }
+        }}
+        onConfirmPT={async (redeemId) => {
+          if (!approveRow) return;
+          try {
+            await approvePTMutation.mutateAsync({ rechargeId: approveRow.id, redeemId });
+            showToast({ variant: "success", title: "Approved (PT)", description: "Recharge matched with redeem request." });
+            setApproveRow(null);
+          } catch (e) {
+            showToast({
+              variant: "error",
+              title: "PT Approve failed",
+              description: e instanceof Error ? e.message : "Unable to approve PT request.",
             });
           }
         }}

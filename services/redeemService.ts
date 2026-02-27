@@ -8,6 +8,7 @@ const REDEEM_SELECT = `
   player_id,
   entity_id,
   game_id,
+  payment_method_id,
   total_amount,
   paid_amount,
   hold_amount,
@@ -23,7 +24,8 @@ const REDEEM_SELECT = `
   updated_at,
   players ( id, name, entity_id ),
   entities ( id, name ),
-  games ( id, name )
+  games ( id, name ),
+  payment_method:player_payment_methods!redeem_requests_payment_method_id_fkey ( id, method_name, details )
 `;
 
 function mapRow(r: Record<string, unknown>): RedeemRequestRow {
@@ -32,6 +34,7 @@ function mapRow(r: Record<string, unknown>): RedeemRequestRow {
     player_id: r.player_id as string,
     entity_id: r.entity_id as string,
     game_id: (r.game_id as string) ?? null,
+    payment_method_id: (r.payment_method_id as string) ?? null,
     total_amount: Number(r.total_amount ?? 0),
     paid_amount: Number(r.paid_amount ?? 0),
     hold_amount: Number(r.hold_amount ?? 0),
@@ -48,6 +51,7 @@ function mapRow(r: Record<string, unknown>): RedeemRequestRow {
     player: (r.players as RedeemRequestRow["player"]) ?? null,
     entity: (r.entities as RedeemRequestRow["entity"]) ?? null,
     game: (r.games as RedeemRequestRow["game"]) ?? null,
+    payment_method: (r.payment_method as RedeemRequestRow["payment_method"]) ?? null,
   };
 }
 
@@ -121,5 +125,20 @@ export async function createRedeemRequest(input: RedeemRequestCreateInput): Prom
     .single();
   if (error) throw error;
   return mapRow((data ?? {}) as Record<string, unknown>);
+}
+
+/**
+ * Fetch redeem requests eligible for PT matching with a recharge request.
+ * Eligible = same entity_id AND remaining_amount > 0.
+ */
+export async function fetchEligiblePTRedeems(entityId: string): Promise<RedeemRequestRow[]> {
+  const { data, error } = await supabase
+    .from("redeem_requests")
+    .select(REDEEM_SELECT)
+    .eq("entity_id", entityId)
+    .gt("remaining_amount", 0)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map(mapRow);
 }
 
