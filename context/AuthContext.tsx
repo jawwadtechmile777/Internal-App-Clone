@@ -83,10 +83,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let signOutTimer: ReturnType<typeof setTimeout> | null = null;
 
     const init = async () => {
       try {
-        // getUser() validates/refreshes session from server (cookies); getSession() is client-only and can be stale
         const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
         if (!mounted) return;
         if (authError || !authUser?.id) {
@@ -118,28 +118,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+
       if (event === "SIGNED_OUT" || !session?.user?.id) {
-        setState({ user: null, loading: false, error: null });
+        if (signOutTimer) clearTimeout(signOutTimer);
+        signOutTimer = setTimeout(() => {
+          if (!mounted) return;
+          setState((prev) => {
+            if (!prev.user) return prev;
+            return { user: null, loading: false, error: null };
+          });
+        }, 2000);
         return;
       }
+
+      if (signOutTimer) {
+        clearTimeout(signOutTimer);
+        signOutTimer = null;
+      }
+
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         try {
           const profile = await fetchUserProfile(session.user.id);
-          setState({ user: profile, loading: false, error: null });
-        } catch (e) {
-          setState({
-            user: null,
-            loading: false,
-            error: e instanceof Error ? e : new Error(String(e)),
-          });
+          if (mounted) {
+            setState((prev) => ({ ...prev, user: profile, loading: false, error: null }));
+          }
+        } catch {
+          // Token refresh succeeded but profile fetch failed — keep previous user to avoid flicker
         }
       }
     });
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible" || !mounted) return;
+      supabase.auth.getUser().then(({ data: { user: authUser }, error: authError }) => {
+        if (!mounted) return;
+        if (authError || !authUser?.id) return;
+        setState((prev) => {
+          if (prev.user && !prev.loading) return prev;
+          return { ...prev, loading: false };
+        });
+      });
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       mounted = false;
+      if (signOutTimer) clearTimeout(signOutTimer);
       window.clearTimeout(timeoutId);
       subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [supabase, fetchUserProfile]);
 

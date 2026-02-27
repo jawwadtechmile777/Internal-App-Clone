@@ -10,10 +10,12 @@ interface FinanceRechargeRequestsTableProps {
   loading?: boolean;
   emptyMessage?: string;
   busyId?: string | null;
-  busyAction?: "approve" | "reject" | null;
+  busyAction?: "approve" | "reject" | "verify" | "reject_verification" | null;
   onView: (row: RechargeRequestRow) => void;
   onApprove: (row: RechargeRequestRow) => void;
   onReject: (row: RechargeRequestRow) => void;
+  onVerify?: (row: RechargeRequestRow) => void;
+  onRejectVerification?: (row: RechargeRequestRow) => void;
 }
 
 function formatDate(iso: string | null): string {
@@ -35,6 +37,8 @@ function computeStatus(r: RechargeRequestRow): string {
   if (r.operations_status === "cancelled") return "Cancelled";
   if (r.operations_status === "rejected") return "Rejected (Operations)";
 
+  if (r.finance_status === "verified") return "Finance Verified";
+  if (r.finance_status === "verification_pending") return "Verification pending";
   if (r.finance_status === "rejected") return "Rejected (Finance)";
   if (r.finance_status !== "approved") return "Waiting Finance Approval";
 
@@ -79,8 +83,12 @@ function tagDetails(r: RechargeRequestRow): string {
     const acct = r.payment_method_account;
     if (!acct) return "CT • —";
     const bank = acct.payment_method?.name ? `${acct.payment_method.name} • ` : "";
+    const holder = acct.holder_name ? ` • ${acct.holder_name}` : "";
     const iban = acct.iban ? ` • ${acct.iban}` : "";
-    return `${bank}${acct.account_name} • ${acct.account_number}${iban}`;
+    const branch = (acct as unknown as { branch_name?: string | null }).branch_name
+      ? ` • ${(acct as unknown as { branch_name?: string | null }).branch_name}`
+      : "";
+    return `${bank}${acct.account_name} • ${acct.account_number}${holder}${iban}${branch}`;
   }
   const pt = r.pt_payment_method;
   if (!pt) return "PT • —";
@@ -103,6 +111,8 @@ export function FinanceRechargeRequestsTable({
   onView,
   onApprove,
   onReject,
+  onVerify,
+  onRejectVerification,
 }: FinanceRechargeRequestsTableProps) {
   if (loading) {
     return (
@@ -125,6 +135,7 @@ export function FinanceRechargeRequestsTable({
       <table className="min-w-full divide-y divide-gray-700 text-left text-sm">
         <thead className="bg-slate-800">
           <tr>
+            <th className="px-4 py-3 font-medium text-gray-300">Proof</th>
             <th className="px-4 py-3 font-medium text-gray-300">Entity</th>
             <th className="px-4 py-3 font-medium text-gray-300">Player</th>
             <th className="px-4 py-3 font-medium text-gray-300">Game</th>
@@ -143,11 +154,30 @@ export function FinanceRechargeRequestsTable({
           {rows.map((r) => {
             const status = computeStatus(r);
             const isPending = r.finance_status === "pending";
+            const isVerificationPending = r.finance_status === "verification_pending";
             const rowBusy = busyId === r.id;
             const approveLoading = rowBusy && busyAction === "approve";
             const rejectLoading = rowBusy && busyAction === "reject";
+            const verifyLoading = rowBusy && busyAction === "verify";
+            const rejectVerificationLoading = rowBusy && busyAction === "reject_verification";
             return (
               <tr key={r.id} className="hover:bg-slate-700/40">
+                <td className="px-4 py-3">
+                  {r.entity_payment_proof_path ? (
+                    <a
+                      href={r.entity_payment_proof_path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block h-10 w-10 overflow-hidden rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                      title="Open proof"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={r.entity_payment_proof_path} alt="Proof" className="h-10 w-10 object-cover" />
+                    </a>
+                  ) : (
+                    <span className="text-xs text-gray-500">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-gray-100">{r.entity?.name ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-100">{r.player?.name ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-300">{r.game?.name ?? "—"}</td>
@@ -192,6 +222,27 @@ export function FinanceRechargeRequestsTable({
                           title="Reject"
                         >
                           {rejectLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                        </button>
+                      </>
+                    ) : isVerificationPending && r.tag_type === "CT" && onVerify && onRejectVerification ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onVerify(r)}
+                          disabled={rowBusy}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                          title="Verify and send to Operations"
+                        >
+                          {verifyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onRejectVerification(r)}
+                          disabled={rowBusy}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-red-600 text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                          title="Reject verification"
+                        >
+                          {rejectVerificationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
                         </button>
                       </>
                     ) : null}

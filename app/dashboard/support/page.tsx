@@ -3,12 +3,11 @@
 import { useState } from "react";
 import { RechargeRequestsTable } from "@/components/tables/RechargeRequestsTable";
 import { RechargeDetailModal } from "@/components/modals/RechargeDetailModal";
-import { SupportSubmitPaymentModal } from "@/components/modals/SupportSubmitPaymentModal";
+import { UploadPaymentProofModal } from "@/components/modals/UploadPaymentProofModal";
 import { CreateRechargeModal } from "@/components/modals/CreateRechargeModal";
 import { useSupportRequests } from "@/hooks/useSupportRequests";
 import { useAuth } from "@/hooks/useAuth";
 import { getDepartmentSlug } from "@/lib/roleGuard";
-import * as supportService from "@/services/supportService";
 import { isSupportSlug } from "@/lib/roleConfig";
 import type { RechargeRequestRow } from "@/types/recharge";
 
@@ -21,15 +20,6 @@ export default function SupportDashboardPage() {
   const entityId = slug && isSupportSlug(slug) ? user?.entity_id ?? undefined : undefined;
 
   const { data, loading, error, refetch } = useSupportRequests({ entity_id: entityId });
-
-  const handleSubmitPayment = async (
-    requestId: string,
-    proofPath: string,
-    accountId?: string | null
-  ) => {
-    await supportService.supportSubmitPaymentProof(requestId, proofPath, accountId);
-    refetch();
-  };
 
   return (
     <div className="space-y-6">
@@ -53,30 +43,15 @@ export default function SupportDashboardPage() {
         loading={loading}
         onRowClick={setDetailRow}
         emptyMessage="No recharge requests."
+        showSubmitPayment={!!entityId}
+        onSubmitPayment={(r) => setSubmitPaymentRow(r)}
       />
-      <div className="flex flex-wrap gap-2">
-        {data
-          .filter(
-            (r) =>
-              r.finance_status === "approved" && r.entity_status !== "payment_submitted"
-          )
-          .map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              onClick={() => setSubmitPaymentRow(r)}
-              className="rounded bg-slate-600 px-2 py-1 text-xs text-white hover:bg-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500"
-            >
-              Submit payment
-            </button>
-          ))}
-      </div>
       <RechargeDetailModal open={!!detailRow} onClose={() => setDetailRow(null)} row={detailRow} />
-      <SupportSubmitPaymentModal
+      <UploadPaymentProofModal
         open={!!submitPaymentRow}
         onClose={() => setSubmitPaymentRow(null)}
         row={submitPaymentRow}
-        onSubmit={handleSubmitPayment}
+        onSubmitted={async () => refetch()}
       />
       {user && (
         <CreateRechargeModal

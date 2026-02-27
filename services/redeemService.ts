@@ -61,6 +61,25 @@ export async function fetchRedeemRequests(filters: { entity_id: string }): Promi
   return ((data ?? []) as Record<string, unknown>[]).map(mapRow);
 }
 
+export async function fetchRedeemRequestsPaged(params: {
+  page: number;
+  pageSize: number;
+}): Promise<{ rows: RedeemRequestRow[]; total: number }> {
+  const page = Math.max(1, params.page);
+  const pageSize = Math.min(100, Math.max(1, params.pageSize));
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
+    .from("redeem_requests")
+    .select(REDEEM_SELECT, { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (error) throw error;
+  return { rows: ((data ?? []) as Record<string, unknown>[]).map(mapRow), total: count ?? 0 };
+}
+
 export async function fetchRedeemRequestById(id: string): Promise<RedeemRequestRow | null> {
   const { data, error } = await supabase
     .from("redeem_requests")

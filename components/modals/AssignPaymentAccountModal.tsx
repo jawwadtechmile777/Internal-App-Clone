@@ -22,7 +22,11 @@ export function AssignPaymentAccountModal({
   onConfirm,
 }: AssignPaymentAccountModalProps) {
   const paymentMethodId = row?.payment_method_id ?? null;
-  const accountsQuery = usePaymentMethodAccounts(paymentMethodId, open);
+  const paymentMethodName = row?.payment_method?.method_name ?? null;
+  const accountsQuery = usePaymentMethodAccounts(
+    { paymentMethodId, paymentMethodName },
+    open
+  );
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
@@ -39,12 +43,14 @@ export function AssignPaymentAccountModal({
 
   const warning = useMemo(() => {
     if (!row) return null;
-    if (!paymentMethodId) return "This request has no payment method. Cannot assign a bank account.";
+    if (!paymentMethodId && !paymentMethodName) {
+      return "This request has no payment method. Cannot assign a bank account.";
+    }
     if (accountsQuery.isLoading) return null;
     if (accountsQuery.error) return "Unable to load accounts for this payment method";
     if (accounts.length === 0) return "No active accounts available for this payment method";
     return null;
-  }, [row, paymentMethodId, accountsQuery.isLoading, accounts.length, accountsQuery.error]);
+  }, [row, paymentMethodId, paymentMethodName, accountsQuery.isLoading, accounts.length, accountsQuery.error]);
 
   if (!row) return null;
 
@@ -107,11 +113,23 @@ export function AssignPaymentAccountModal({
                           </span>
                         ) : null}
                       </div>
+                      <div className="mt-1 text-sm text-gray-200">Account holder: {a.holder_name || "—"}</div>
                       <div className="mt-1 text-sm text-gray-300">
-                        {a.account_name} • {a.account_number}
-                        {a.iban ? <span className="text-gray-400"> • {a.iban}</span> : null}
+                        {a.account_number ? (
+                          <span>
+                            Account number: <span className="text-gray-100">{a.account_number}</span>
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">Account number: —</span>
+                        )}
+                        {a.iban ? (
+                          <span className="ml-3">
+                            IBAN: <span className="text-gray-100">{a.iban}</span>
+                          </span>
+                        ) : (
+                          <span className="ml-3 text-gray-400">IBAN: —</span>
+                        )}
                       </div>
-                      <div className="mt-1 text-xs text-gray-400">Holder: {a.holder_name}</div>
                     </div>
                     <div className="pt-1">
                       <span

@@ -3,13 +3,18 @@
 import { useQuery } from "@tanstack/react-query";
 import * as paymentMethodAccountsService from "@/services/paymentMethodAccountsService";
 
-export function usePaymentMethodAccounts(paymentMethodId: string | null | undefined, enabled: boolean) {
+export function usePaymentMethodAccounts(
+  params: { paymentMethodId?: string | null; paymentMethodName?: string | null } | null | undefined,
+  enabled: boolean
+) {
   return useQuery({
-    queryKey: ["paymentMethodAccounts", { paymentMethodId }],
-    enabled: enabled && !!paymentMethodId,
+    queryKey: ["paymentMethodAccounts", { paymentMethodId: params?.paymentMethodId ?? null, paymentMethodName: params?.paymentMethodName ?? null }],
+    enabled: enabled && (!!params?.paymentMethodId || !!params?.paymentMethodName),
     queryFn: async () => {
-      if (!paymentMethodId) return [];
-      return paymentMethodAccountsService.fetchActivePaymentMethodAccountsByPaymentMethodId(paymentMethodId);
+      return paymentMethodAccountsService.fetchActivePaymentMethodAccountsForRechargePaymentMethod({
+        paymentMethodId: params?.paymentMethodId ?? null,
+        paymentMethodName: params?.paymentMethodName ?? null,
+      });
     },
     staleTime: 30_000,
   });

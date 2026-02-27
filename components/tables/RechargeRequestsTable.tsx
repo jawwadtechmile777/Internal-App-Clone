@@ -7,6 +7,9 @@ interface RechargeRequestsTableProps {
   onRowClick?: (row: RechargeRequestRow) => void;
   loading?: boolean;
   emptyMessage?: string;
+  /** Show Submit Payment action when finance approved. */
+  showSubmitPayment?: boolean;
+  onSubmitPayment?: (row: RechargeRequestRow) => void;
 }
 
 function formatDate(iso: string | null): string {
@@ -23,11 +26,49 @@ function formatAmount(n: number | null): string {
   return Number(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
 }
 
+function SubmitIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M12 3V14"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M7 9L12 14L17 9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 17H20"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function RechargeRequestsTable({
   rows,
   onRowClick,
   loading,
   emptyMessage = "No requests found.",
+  showSubmitPayment = false,
+  onSubmitPayment,
 }: RechargeRequestsTableProps) {
   if (loading) {
     return (
@@ -59,6 +100,9 @@ export function RechargeRequestsTable({
             <th className="px-4 py-3 font-medium text-gray-300">Verification</th>
             <th className="px-4 py-3 font-medium text-gray-300">Operations</th>
             <th className="px-4 py-3 font-medium text-gray-300">Created</th>
+            {showSubmitPayment && onSubmitPayment ? (
+              <th className="px-4 py-3 font-medium text-gray-300 text-right">Actions</th>
+            ) : null}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-700 bg-slate-800/30">
@@ -107,6 +151,28 @@ export function RechargeRequestsTable({
               <td className="px-4 py-3 text-gray-500">
                 {formatDate(row.created_at)}
               </td>
+              {showSubmitPayment && onSubmitPayment ? (
+                <td
+                  className="px-4 py-3 text-right"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {row.finance_status === "approved" && !row.entity_payment_submitted_at ? (
+                    <button
+                      type="button"
+                      onClick={() => onSubmitPayment(row)}
+                      className="inline-flex items-center gap-1 rounded bg-emerald-700 px-2 py-1 text-xs text-white hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                      title="Submit payment proof"
+                    >
+                      <SubmitIcon />
+                      Submit Payment
+                    </button>
+                  ) : row.entity_payment_submitted_at ? (
+                    <span className="rounded bg-slate-700 px-2 py-0.5 text-xs text-gray-400">
+                      Payment Submitted
+                    </span>
+                  ) : null}
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>

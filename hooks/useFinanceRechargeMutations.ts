@@ -45,7 +45,7 @@ export function useFinanceApproveRechargeRequest() {
             entity_status: "payment pending",
             operations_status: "pending",
             payment_method_account_id: vars.paymentMethodAccountId,
-            finance_approved_at: now,
+            tag_type: "CT",
             updated_at: now,
           })
         );
@@ -55,6 +55,34 @@ export function useFinanceApproveRechargeRequest() {
     },
     onError: (_err, _vars, ctx) => {
       ctx?.prev.forEach(([key, data]) => qc.setQueryData(key, data));
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["financeRechargeRequests"] });
+    },
+  });
+}
+
+export function useFinanceVerifyPaymentRechargeRequest() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (vars: { requestId: string }) => {
+      await financeService.financeVerifyAndSendToOperations(vars.requestId);
+      return vars;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["financeRechargeRequests"] });
+    },
+  });
+}
+
+export function useFinanceRejectVerificationRechargeRequest() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (vars: { requestId: string; reason: string }) => {
+      await financeService.financeRejectVerification(vars.requestId, vars.reason);
+      return vars;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["financeRechargeRequests"] });

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabaseClient";
 import { canTransitionOperationsStatus } from "@/lib/statusTransitions";
-import type { RechargeRequestRow, RechargeTagType } from "@/types/recharge";
+import type { RechargeFinanceStatus, RechargeRequestRow, RechargeTagType } from "@/types/recharge";
 
 const supabase = createClient();
 
@@ -23,7 +23,7 @@ export async function fetchFinanceRechargeRequests(
 export async function fetchFinanceRechargeRequestsPaged(params: {
   page: number;
   pageSize: number;
-  finance_status?: "pending" | "approved" | "rejected";
+  finance_status?: RechargeFinanceStatus;
 }): Promise<{ rows: RechargeRequestRow[]; total: number }> {
   const { fetchRechargeRequestsPaged } = await import("./rechargeService");
   return fetchRechargeRequestsPaged({
@@ -41,6 +41,7 @@ export async function financeApprove(requestId: string): Promise<void> {
   if (row.finance_status !== "pending") throw new Error("Request is not pending finance approval");
   await updateRechargeRequest(requestId, {
     finance_status: "approved",
+    entity_status: "payment pending",
     operations_status: "pending",
   });
 }
@@ -59,12 +60,25 @@ export async function financeApproveAssignPaymentAccount(params: {
   // Validate that the selected account is active and belongs to the same payment_method_id.
   const { data: acct, error: acctError } = await supabase
     .from("payment_method_accounts")
-    .select("id, payment_method_id, status")
+    .select("id, payment_method_id, status, payment_methods ( id, name )")
     .eq("id", params.paymentMethodAccountId)
     .single();
   if (acctError) throw acctError;
   if (!acct || acct.status !== "active") throw new Error("Selected bank account is not active");
-  if (acct.payment_method_id !== row.payment_method_id) {
+
+  const requestPmId = row.payment_method_id;
+  const requestPmName = row.payment_method?.method_name ?? null;
+  const acctPmId = acct.payment_method_id as string;
+  const acctPmName =
+    ((acct as unknown as { payment_methods?: { id: string; name: string } | null }).payment_methods?.name as string | undefined) ??
+    null;
+
+  const nameMatches =
+    !!requestPmName &&
+    !!acctPmName &&
+    requestPmName.trim().toLowerCase() === acctPmName.trim().toLowerCase();
+
+  if (acctPmId !== requestPmId && !nameMatches) {
     throw new Error("Selected bank account does not match the request payment method");
   }
 
@@ -77,7 +91,7 @@ export async function financeApproveAssignPaymentAccount(params: {
       entity_status: "payment pending",
       operations_status: "pending",
       payment_method_account_id: params.paymentMethodAccountId,
-      finance_approved_at: now,
+      tag_type: "CT",
       updated_at: now,
     })
     .eq("id", params.requestId)
@@ -109,6 +123,7 @@ export async function financeApproveWithCT(requestId: string): Promise<void> {
   await updateRechargeRequest(requestId, {
     tag_type: "CT",
     finance_status: "approved",
+    entity_status: "payment pending",
     operations_status: "pending",
   });
 }
@@ -122,6 +137,7 @@ export async function financeApproveWithPT(requestId: string): Promise<void> {
   await updateRechargeRequest(requestId, {
     tag_type: "PT",
     finance_status: "approved",
+    entity_status: "payment pending",
     verification_status: "pending",
     operations_status: "pending",
   });
@@ -139,19 +155,34 @@ export async function financeReject(requestId: string, remarks?: string): Promis
   });
 }
 
-/** Finance: after Support submitted payment (CT flow), verify and send to Operations. */
+/** Finance: after Entity submitted payment (CT flow), verify and send to Operations. */
 export async function financeVerifyAndSendToOperations(requestId: string): Promise<void> {
   const { fetchRechargeRequestById, updateRechargeRequest } = await import("./rechargeService");
   const row = await fetchRechargeRequestById(requestId);
   if (!row) throw new Error("Request not found");
   if (row.tag_type !== "CT") throw new Error("Only CT flow is verified by Finance");
-  if (row.finance_status !== "approved") throw new Error("Request must be approved by Finance first");
-  if (row.entity_status !== "payment_submitted") throw new Error("Support must submit payment first");
+  if (row.finance_status !== "verification_pending") throw new Error("Request must be in verification pending state");
+  if (row.entity_status !== "payment_submitted") throw new Error("Entity must submit payment first");
   const currentOp = row.operations_status ?? "pending";
   if (!canTransitionOperationsStatus(currentOp, "waiting_operations")) {
     throw new Error("Invalid operations status transition");
   }
   await updateRechargeRequest(requestId, {
+    finance_status: "verified",
     operations_status: "waiting_operations",
+  });
+}
+
+/** Finance: reject after Entity submitted payment (verification_pending). */
+export async function financeRejectVerification(requestId: string, reason: string): Promise<void> {
+  const { fetchRechargeRequestById, updateRechargeRequest } = await import("./rechargeService");
+  const row = await fetchRechargeRequestById(requestId);
+  if (!row) throw new Error("Request not found");
+  if (row.finance_status !== "verification_pending") throw new Error("Request is not pending verification");
+  await updateRechargeRequest(requestId, {
+    finance_status: "rejected",
+    entity_status: "rejected",
+    operations_status: "cancelled",
+    remarks: reason.trim() || row.remarks,
   });
 }

@@ -46,18 +46,6 @@ const RECHARGE_SELECT_BASE = `
   requested_by_user:requested_by ( id )
 `;
 
-const RECHARGE_SELECT_WITH_FINANCE_APPROVED_AT = `
-  ${RECHARGE_SELECT_BASE.trim().replace(/,$/, "")},
-  finance_approved_at
-`;
-
-function isMissingColumn(e: unknown, column: string): boolean {
-  if (!e || typeof e !== "object") return false;
-  const code = (e as { code?: unknown }).code;
-  const msg = (e as { message?: unknown }).message;
-  return code === "42703" && typeof msg === "string" && msg.toLowerCase().includes(column.toLowerCase());
-}
-
 function mapRow(r: Record<string, unknown>): RechargeRequestRow {
   return {
     id: r.id as string,
@@ -79,7 +67,6 @@ function mapRow(r: Record<string, unknown>): RechargeRequestRow {
     requested_by: (r.requested_by as string) ?? null,
     created_at: (r.created_at as string) ?? null,
     updated_at: (r.updated_at as string) ?? null,
-    finance_approved_at: (r.finance_approved_at as string) ?? null,
     entity_payment_proof_path: (r.entity_payment_proof_path as string) ?? null,
     entity_payment_submitted_at: (r.entity_payment_submitted_at as string) ?? null,
     tag_type: (r.tag_type as RechargeRequestRow["tag_type"]) ?? null,
@@ -106,27 +93,21 @@ export async function fetchRechargeRequests(filters?: {
   operations_status?: string;
   tag_type?: string;
 }): Promise<RechargeRequestRow[]> {
-  const run = async (select: string) => {
-    let q = supabase.from("recharge_requests").select(select).order("created_at", { ascending: false });
+  let q = supabase
+    .from("recharge_requests")
+    .select(RECHARGE_SELECT_BASE)
+    .order("created_at", { ascending: false });
 
-    if (filters?.entity_id != null) q = q.eq("entity_id", filters.entity_id);
-    if (filters?.entity_status) q = q.eq("entity_status", filters.entity_status);
-    if (filters?.finance_status) q = q.eq("finance_status", filters.finance_status);
-    if (filters?.verification_status) q = q.eq("verification_status", filters.verification_status);
-    if (filters?.operations_status) q = q.eq("operations_status", filters.operations_status);
-    if (filters?.tag_type) q = q.eq("tag_type", filters.tag_type);
+  if (filters?.entity_id != null) q = q.eq("entity_id", filters.entity_id);
+  if (filters?.entity_status) q = q.eq("entity_status", filters.entity_status);
+  if (filters?.finance_status) q = q.eq("finance_status", filters.finance_status);
+  if (filters?.verification_status) q = q.eq("verification_status", filters.verification_status);
+  if (filters?.operations_status) q = q.eq("operations_status", filters.operations_status);
+  if (filters?.tag_type) q = q.eq("tag_type", filters.tag_type);
 
-    const { data, error } = await q;
-    if (error) throw error;
-    return ((data ?? []) as Record<string, unknown>[]).map(mapRow);
-  };
-
-  try {
-    return await run(RECHARGE_SELECT_WITH_FINANCE_APPROVED_AT);
-  } catch (e) {
-    if (isMissingColumn(e, "finance_approved_at")) return await run(RECHARGE_SELECT_BASE);
-    throw e;
-  }
+  const { data, error } = await q;
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map(mapRow);
 }
 
 export async function fetchRechargeRequestsPaged(params: {
@@ -146,54 +127,36 @@ export async function fetchRechargeRequestsPaged(params: {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  const run = async (select: string) => {
-    let q = supabase
-      .from("recharge_requests")
-      .select(select, { count: "exact" })
-      .order("created_at", { ascending: false })
-      .range(from, to);
+  let q = supabase
+    .from("recharge_requests")
+    .select(RECHARGE_SELECT_BASE, { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
-    const filters = params.filters;
-    if (filters?.entity_id != null) q = q.eq("entity_id", filters.entity_id);
-    if (filters?.entity_status) q = q.eq("entity_status", filters.entity_status);
-    if (filters?.finance_status) q = q.eq("finance_status", filters.finance_status);
-    if (filters?.verification_status) q = q.eq("verification_status", filters.verification_status);
-    if (filters?.operations_status) q = q.eq("operations_status", filters.operations_status);
-    if (filters?.tag_type) q = q.eq("tag_type", filters.tag_type);
+  const filters = params.filters;
+  if (filters?.entity_id != null) q = q.eq("entity_id", filters.entity_id);
+  if (filters?.entity_status) q = q.eq("entity_status", filters.entity_status);
+  if (filters?.finance_status) q = q.eq("finance_status", filters.finance_status);
+  if (filters?.verification_status) q = q.eq("verification_status", filters.verification_status);
+  if (filters?.operations_status) q = q.eq("operations_status", filters.operations_status);
+  if (filters?.tag_type) q = q.eq("tag_type", filters.tag_type);
 
-    const { data, error, count } = await q;
-    if (error) throw error;
-    return { rows: ((data ?? []) as Record<string, unknown>[]).map(mapRow), total: count ?? 0 };
-  };
-
-  try {
-    return await run(RECHARGE_SELECT_WITH_FINANCE_APPROVED_AT);
-  } catch (e) {
-    if (isMissingColumn(e, "finance_approved_at")) return await run(RECHARGE_SELECT_BASE);
-    throw e;
-  }
+  const { data, error, count } = await q;
+  if (error) throw error;
+  return { rows: ((data ?? []) as Record<string, unknown>[]).map(mapRow), total: count ?? 0 };
 }
 
 export async function fetchRechargeRequestById(id: string): Promise<RechargeRequestRow | null> {
-  const run = async (select: string) => {
-    const { data, error } = await supabase
-      .from("recharge_requests")
-      .select(select)
-      .eq("id", id)
-      .single();
-    if (error) {
-      if (error.code === "PGRST116") return null;
-      throw error;
-    }
-    return data ? mapRow(data as Record<string, unknown>) : null;
-  };
-
-  try {
-    return await run(RECHARGE_SELECT_WITH_FINANCE_APPROVED_AT);
-  } catch (e) {
-    if (isMissingColumn(e, "finance_approved_at")) return await run(RECHARGE_SELECT_BASE);
-    throw e;
+  const { data, error } = await supabase
+    .from("recharge_requests")
+    .select(RECHARGE_SELECT_BASE)
+    .eq("id", id)
+    .single();
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw error;
   }
+  return data ? mapRow(data as Record<string, unknown>) : null;
 }
 
 export async function createRechargeRequest(

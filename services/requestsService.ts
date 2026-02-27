@@ -61,6 +61,27 @@ export async function fetchRequestsByEntityAndType(filters: {
   return ((data ?? []) as Record<string, unknown>[]).map(mapRow);
 }
 
+export async function fetchRequestsByTypePaged(params: {
+  page: number;
+  pageSize: number;
+  type: string;
+}): Promise<{ rows: AppRequestRow[]; total: number }> {
+  const page = Math.max(1, params.page);
+  const pageSize = Math.min(100, Math.max(1, params.pageSize));
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
+    .from("requests")
+    .select(SELECT, { count: "exact" })
+    .eq("type", params.type)
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (error) throw error;
+  return { rows: ((data ?? []) as Record<string, unknown>[]).map(mapRow), total: count ?? 0 };
+}
+
 export async function createRequest(input: AppRequestCreateInput): Promise<AppRequestRow> {
   const payload = {
     entity_id: input.entity_id,

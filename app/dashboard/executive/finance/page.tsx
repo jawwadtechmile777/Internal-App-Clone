@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function ExecutiveFinancePage() {
-  redirect("/dashboard/executive/finance/recharge-requests");
+  redirect("/dashboard/executive/finance/activities");
 }

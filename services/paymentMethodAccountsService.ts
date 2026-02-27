@@ -49,3 +49,50 @@ export async function fetchActivePaymentMethodAccountsByPaymentMethodId(
   return ((data ?? []) as Record<string, unknown>[]).map(mapRow);
 }
 
+async function resolvePaymentMethodIdByName(name: string): Promise<string | null> {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+
+  const exact = await supabase.from("payment_methods").select("id").eq("name", trimmed).maybeSingle();
+  if (exact.error) throw exact.error;
+  if (exact.data?.id) return exact.data.id as string;
+
+  const ilike = await supabase
+    .from("payment_methods")
+    .select("id")
+    .ilike("name", trimmed)
+    .maybeSingle();
+  if (ilike.error) throw ilike.error;
+  return (ilike.data?.id as string) ?? null;
+}
+
+/**
+ * Fetch active company/bank accounts for a recharge request payment method.
+ *
+ * In some deployments, `recharge_requests.payment_method_id` stores a user/payment record (eg `player_payment_methods.id`)
+ * while `payment_method_accounts.payment_method_id` stores the bank (`payment_methods.id`).
+ *
+ * To be robust, we try:
+ * - direct match by id
+ * - if that returns empty, resolve bank id by payment method name and query again
+ */
+export async function fetchActivePaymentMethodAccountsForRechargePaymentMethod(params: {
+  paymentMethodId?: string | null;
+  paymentMethodName?: string | null;
+}): Promise<PaymentMethodAccountRow[]> {
+  const id = params.paymentMethodId ?? null;
+  const name = params.paymentMethodName ?? null;
+
+  if (id) {
+    const direct = await fetchActivePaymentMethodAccountsByPaymentMethodId(id);
+    if (direct.length > 0) return direct;
+  }
+
+  if (name) {
+    const resolvedId = await resolvePaymentMethodIdByName(name);
+    if (resolvedId) return fetchActivePaymentMethodAccountsByPaymentMethodId(resolvedId);
+  }
+
+  return [];
+}
+

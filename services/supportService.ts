@@ -20,7 +20,8 @@ export async function fetchSupportRechargeRequests(filters?: {
 export async function supportSubmitPaymentProof(
   requestId: string,
   entityPaymentProofPath: string,
-  paymentMethodAccountId?: string | null
+  paymentMethodAccountId?: string | null,
+  notes?: string | null
 ): Promise<void> {
   const { fetchRechargeRequestById, updateRechargeRequest } = await import("./rechargeService");
   const row = await fetchRechargeRequestById(requestId);
@@ -32,5 +33,7 @@ export async function supportSubmitPaymentProof(
     entity_payment_proof_path: entityPaymentProofPath,
     entity_payment_submitted_at: new Date().toISOString(),
     payment_method_account_id: paymentMethodAccountId ?? row.payment_method_account_id,
+    finance_status: "verification_pending",
+    remarks: notes?.trim() ? notes.trim() : row.remarks,
   });
 }

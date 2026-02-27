@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import * as rechargeService from "@/services/rechargeService";
 import type { RechargeRequestRow } from "@/types/recharge";
 
@@ -17,13 +17,17 @@ export function useRechargeRequests(filters?: UseRechargeRequestsFilters) {
   const [data, setData] = useState<RechargeRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const hasFetched = useRef(false);
 
   const refetch = useCallback(async () => {
-    setLoading(true);
+    if (hasFetched.current) {
+      setLoading(false);
+    }
     setError(null);
     try {
       const list = await rechargeService.fetchRechargeRequests(filters);
       setData(list);
+      hasFetched.current = true;
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
     } finally {
@@ -39,7 +43,16 @@ export function useRechargeRequests(filters?: UseRechargeRequestsFilters) {
   ]);
 
   useEffect(() => {
+    setLoading(true);
     refetch();
+  }, [refetch]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      refetch();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [refetch]);
 
   return { data, loading, error, refetch };
@@ -49,6 +62,7 @@ export function useRechargeRequestById(id: string | null) {
   const [data, setData] = useState<RechargeRequestRow | null>(null);
   const [loading, setLoading] = useState(!!id);
   const [error, setError] = useState<Error | null>(null);
+  const hasFetched = useRef(false);
 
   const refetch = useCallback(async () => {
     if (!id) {
@@ -56,11 +70,12 @@ export function useRechargeRequestById(id: string | null) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!hasFetched.current) setLoading(true);
     setError(null);
     try {
       const row = await rechargeService.fetchRechargeRequestById(id);
       setData(row);
+      hasFetched.current = true;
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
     } finally {
@@ -69,7 +84,16 @@ export function useRechargeRequestById(id: string | null) {
   }, [id]);
 
   useEffect(() => {
+    hasFetched.current = false;
     refetch();
+  }, [refetch]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      refetch();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [refetch]);
 
   return { data, loading, error, refetch };

@@ -33,6 +33,10 @@ function computeStatus(r: RechargeRequestRow): string {
   if (r.operations_status === "cancelled") return "Cancelled";
   if (r.operations_status === "rejected") return "Rejected (Operations)";
 
+  if (r.entity_status === "payment_submitted") return "Payment Submitted";
+
+  if (r.finance_status === "verified") return "Finance Verified";
+  if (r.finance_status === "verification_pending") return "Waiting Finance Verification";
   if (r.finance_status === "rejected") return "Rejected (Finance)";
 
   if (r.finance_status !== "approved") return "Waiting Finance Approval";
@@ -78,8 +82,12 @@ function tagDetails(r: RechargeRequestRow): string {
     const acct = r.payment_method_account;
     if (!acct) return "CT • —";
     const bank = acct.payment_method?.name ? `${acct.payment_method.name} • ` : "";
+    const holder = acct.holder_name ? ` • ${acct.holder_name}` : "";
     const iban = acct.iban ? ` • ${acct.iban}` : "";
-    return `${bank}${acct.account_name} • ${acct.account_number}${iban}`;
+    const branch = (acct as unknown as { branch_name?: string | null }).branch_name
+      ? ` • ${(acct as unknown as { branch_name?: string | null }).branch_name}`
+      : "";
+    return `${bank}${acct.account_name} • ${acct.account_number}${holder}${iban}${branch}`;
   }
   const pt = r.pt_payment_method;
   if (!pt) return "PT • —";
@@ -205,7 +213,7 @@ export function RechargeRequestsTable({
             const canSubmit =
               showSubmitPayment &&
               r.finance_status === "approved" &&
-              r.entity_status !== "payment_submitted";
+              !r.entity_payment_submitted_at;
             const status = computeStatus(r);
             return (
               <tr key={r.id} className="hover:bg-slate-700/40">
@@ -244,7 +252,7 @@ export function RechargeRequestsTable({
                         }`}
                       >
                         <SubmitIcon />
-                        Submit
+                        Submit Payment
                       </button>
                     )}
                   </div>

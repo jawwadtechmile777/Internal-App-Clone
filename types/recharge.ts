@@ -8,6 +8,8 @@ export type RechargeEntityStatus =
 export type RechargeFinanceStatus =
   | "pending"
   | "approved"
+  | "verification_pending"
+  | "verified"
   | "rejected";
 
 export type RechargeVerificationStatus =
@@ -46,7 +48,6 @@ export interface RechargeRequestRow {
   requested_by: string | null;
   created_at: string | null;
   updated_at: string | null;
-  finance_approved_at?: string | null;
   entity_payment_proof_path: string | null;
   entity_payment_submitted_at: string | null;
   tag_type: RechargeTagType | null;
@@ -89,7 +90,6 @@ export interface RechargeRequestUpdateInput {
   operations_status?: RechargeOperationsStatus;
   tag_type?: RechargeTagType | null;
   payment_method_account_id?: string | null;
-  finance_approved_at?: string | null;
   entity_payment_proof_path?: string | null;
   entity_payment_submitted_at?: string | null;
   remarks?: string | null;

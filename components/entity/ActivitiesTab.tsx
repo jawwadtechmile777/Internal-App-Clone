@@ -16,8 +16,8 @@ import { CreateRechargeRequestModal } from "@/components/modals/CreateRechargeRe
 import { CreateRedeemModal } from "@/components/modals/CreateRedeemModal";
 import { CreateRequestModal, type GenericRequestKey, GENERIC_REQUEST_LABEL_BY_KEY } from "@/components/modals/CreateRequestModal";
 import { RequestDetailModal } from "@/components/modals/RequestDetailModal";
-import { SupportSubmitPaymentModal } from "@/components/modals/SupportSubmitPaymentModal";
-import * as supportService from "@/services/supportService";
+import { UploadPaymentProofModal } from "@/components/modals/UploadPaymentProofModal";
+// submit payment handled inside UploadPaymentProofModal
 
 type ActivityListTab =
   | "recharge"
@@ -162,7 +162,7 @@ export function ActivitiesTab({ entityId, actorUserId, restrictedEntityId }: Act
           <RechargeRequestsTable
             rows={recharge.data}
             loading={recharge.loading}
-            showSubmitPayment={!!restrictedEntityId}
+            showSubmitPayment
             onView={(row) => setRechargeDetail(row)}
             onSubmitPayment={(row) => setSubmitPaymentRow(row)}
           />
@@ -224,12 +224,11 @@ export function ActivitiesTab({ entityId, actorUserId, restrictedEntityId }: Act
       <RechargeDetailModal open={!!rechargeDetail} onClose={() => setRechargeDetail(null)} row={rechargeDetail} />
       <RedeemDetailModal open={!!redeemDetail} onClose={() => setRedeemDetail(null)} row={redeemDetail} />
       <RequestDetailModal open={!!requestDetail} onClose={() => setRequestDetail(null)} row={requestDetail} />
-      <SupportSubmitPaymentModal
+      <UploadPaymentProofModal
         open={!!submitPaymentRow}
         onClose={() => setSubmitPaymentRow(null)}
         row={submitPaymentRow}
-        onSubmit={async (requestId, proofPath, accountId) => {
-          await supportService.supportSubmitPaymentProof(requestId, proofPath, accountId);
+        onSubmitted={async () => {
           await recharge.refetch();
         }}
       />
