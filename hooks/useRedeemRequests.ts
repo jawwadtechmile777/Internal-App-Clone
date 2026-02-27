@@ -8,39 +8,48 @@ export function useRedeemRequests(filters: { entity_id: string } | null) {
   const [data, setData] = useState<RedeemRequestRow[]>([]);
   const [loading, setLoading] = useState(!!filters?.entity_id);
   const [error, setError] = useState<Error | null>(null);
-  const hasFetched = useRef(false);
 
-  const refetch = useCallback(async () => {
-    if (!filters?.entity_id) {
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  const entityId = filters?.entity_id;
+
+  useEffect(() => {
+    if (!entityId) {
       setData([]);
       setLoading(false);
       return;
     }
-    if (!hasFetched.current) setLoading(true);
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    (async () => {
+      try {
+        const list = await redeemService.fetchRedeemRequests({ entity_id: entityId });
+        if (!cancelled) setData(list);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e : new Error(String(e)));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [entityId]);
+
+  const refetch = useCallback(async () => {
+    const f = filtersRef.current;
+    if (!f?.entity_id) return;
     setError(null);
     try {
-      const list = await redeemService.fetchRedeemRequests({ entity_id: filters.entity_id });
+      const list = await redeemService.fetchRedeemRequests({ entity_id: f.entity_id });
       setData(list);
-      hasFetched.current = true;
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
-    } finally {
-      setLoading(false);
     }
-  }, [filters?.entity_id]);
-
-  useEffect(() => {
-    hasFetched.current = false;
-    refetch();
-  }, [refetch]);
-
-  useEffect(() => {
-    const onFocus = () => {
-      refetch();
-    };
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refetch]);
+  }, []);
 
   return { data, loading, error, refetch };
 }

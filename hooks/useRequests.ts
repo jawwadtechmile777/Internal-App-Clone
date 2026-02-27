@@ -8,39 +8,49 @@ export function useRequests(filters: { entity_id: string; type: string } | null)
   const [data, setData] = useState<AppRequestRow[]>([]);
   const [loading, setLoading] = useState(!!filters?.entity_id && !!filters?.type);
   const [error, setError] = useState<Error | null>(null);
-  const hasFetched = useRef(false);
 
-  const refetch = useCallback(async () => {
-    if (!filters?.entity_id || !filters.type) {
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  const entityId = filters?.entity_id;
+  const type = filters?.type;
+
+  useEffect(() => {
+    if (!entityId || !type) {
       setData([]);
       setLoading(false);
       return;
     }
-    if (!hasFetched.current) setLoading(true);
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    (async () => {
+      try {
+        const list = await requestsService.fetchRequestsByEntityAndType({ entity_id: entityId, type });
+        if (!cancelled) setData(list);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e : new Error(String(e)));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [entityId, type]);
+
+  const refetch = useCallback(async () => {
+    const f = filtersRef.current;
+    if (!f?.entity_id || !f.type) return;
     setError(null);
     try {
-      const list = await requestsService.fetchRequestsByEntityAndType(filters);
+      const list = await requestsService.fetchRequestsByEntityAndType(f);
       setData(list);
-      hasFetched.current = true;
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
-    } finally {
-      setLoading(false);
     }
-  }, [filters?.entity_id, filters?.type]);
-
-  useEffect(() => {
-    hasFetched.current = false;
-    refetch();
-  }, [refetch]);
-
-  useEffect(() => {
-    const onFocus = () => {
-      refetch();
-    };
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refetch]);
+  }, []);
 
   return { data, loading, error, refetch };
 }

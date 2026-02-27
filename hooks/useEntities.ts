@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as entityService from "@/services/entityService";
 
 export interface UseEntitiesOptions {
@@ -17,7 +17,12 @@ export function useEntities(options?: UseEntitiesOptions) {
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<Error | null>(null);
 
-  const refetch = useCallback(async () => {
+  const enabledRef = useRef(enabled);
+  const restrictedEntityIdRef = useRef(restrictedEntityId);
+  enabledRef.current = enabled;
+  restrictedEntityIdRef.current = restrictedEntityId;
+
+  useEffect(() => {
     if (!enabled) {
       setData([]);
       setLoading(false);
@@ -25,11 +30,35 @@ export function useEntities(options?: UseEntitiesOptions) {
       return;
     }
 
+    let cancelled = false;
     setLoading(true);
     setError(null);
+
+    (async () => {
+      try {
+        if (restrictedEntityId) {
+          const e = await entityService.fetchEntityById(restrictedEntityId);
+          if (!cancelled) setData(e ? [e] : []);
+        } else {
+          const list = await entityService.fetchEntities();
+          if (!cancelled) setData(list);
+        }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e : new Error(String(e)));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [enabled, restrictedEntityId]);
+
+  const refetch = useCallback(async () => {
+    if (!enabledRef.current) return;
+    setError(null);
     try {
-      if (restrictedEntityId) {
-        const e = await entityService.fetchEntityById(restrictedEntityId);
+      if (restrictedEntityIdRef.current) {
+        const e = await entityService.fetchEntityById(restrictedEntityIdRef.current);
         setData(e ? [e] : []);
       } else {
         const list = await entityService.fetchEntities();
@@ -37,14 +66,8 @@ export function useEntities(options?: UseEntitiesOptions) {
       }
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
-    } finally {
-      setLoading(false);
     }
-  }, [enabled, restrictedEntityId]);
-
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
+  }, []);
 
   const byId = useMemo(() => {
     const m = new Map<string, entityService.EntityOption>();
@@ -54,4 +77,3 @@ export function useEntities(options?: UseEntitiesOptions) {
 
   return { data, byId, loading, error, refetch };
 }
-

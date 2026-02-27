@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import * as financeService from "@/services/financeService";
 import type { RechargeRequestRow } from "@/types/recharge";
 
@@ -14,22 +14,40 @@ export function useFinanceRequests(filters?: UseFinanceRequestsFilters) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const refetch = useCallback(async () => {
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  const financeStatus = filters?.finance_status;
+  const tagType = filters?.tag_type;
+
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError(null);
+
+    (async () => {
+      try {
+        const list = await financeService.fetchFinanceRechargeRequests(filtersRef.current);
+        if (!cancelled) setData(list);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e : new Error(String(e)));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [financeStatus, tagType]);
+
+  const refetch = useCallback(async () => {
+    setError(null);
     try {
-      const list = await financeService.fetchFinanceRechargeRequests(filters);
+      const list = await financeService.fetchFinanceRechargeRequests(filtersRef.current);
       setData(list);
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
-    } finally {
-      setLoading(false);
     }
-  }, [filters?.finance_status, filters?.tag_type]);
-
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
+  }, []);
 
   return { data, loading, error, refetch };
 }

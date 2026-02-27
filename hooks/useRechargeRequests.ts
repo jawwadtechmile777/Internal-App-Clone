@@ -17,43 +17,45 @@ export function useRechargeRequests(filters?: UseRechargeRequestsFilters) {
   const [data, setData] = useState<RechargeRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const hasFetched = useRef(false);
+
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  const entityId = filters?.entity_id;
+  const entityStatus = filters?.entity_status;
+  const financeStatus = filters?.finance_status;
+  const verificationStatus = filters?.verification_status;
+  const operationsStatus = filters?.operations_status;
+  const tagType = filters?.tag_type;
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    (async () => {
+      try {
+        const list = await rechargeService.fetchRechargeRequests(filtersRef.current);
+        if (!cancelled) setData(list);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e : new Error(String(e)));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [entityId, entityStatus, financeStatus, verificationStatus, operationsStatus, tagType]);
 
   const refetch = useCallback(async () => {
-    if (hasFetched.current) {
-      setLoading(false);
-    }
     setError(null);
     try {
-      const list = await rechargeService.fetchRechargeRequests(filters);
+      const list = await rechargeService.fetchRechargeRequests(filtersRef.current);
       setData(list);
-      hasFetched.current = true;
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
-    } finally {
-      setLoading(false);
     }
-  }, [
-    filters?.entity_id,
-    filters?.entity_status,
-    filters?.finance_status,
-    filters?.verification_status,
-    filters?.operations_status,
-    filters?.tag_type,
-  ]);
-
-  useEffect(() => {
-    setLoading(true);
-    refetch();
-  }, [refetch]);
-
-  useEffect(() => {
-    const onFocus = () => {
-      refetch();
-    };
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refetch]);
+  }, []);
 
   return { data, loading, error, refetch };
 }
@@ -62,39 +64,45 @@ export function useRechargeRequestById(id: string | null) {
   const [data, setData] = useState<RechargeRequestRow | null>(null);
   const [loading, setLoading] = useState(!!id);
   const [error, setError] = useState<Error | null>(null);
-  const hasFetched = useRef(false);
 
-  const refetch = useCallback(async () => {
+  const idRef = useRef(id);
+  idRef.current = id;
+
+  useEffect(() => {
     if (!id) {
       setData(null);
       setLoading(false);
       return;
     }
-    if (!hasFetched.current) setLoading(true);
+
+    let cancelled = false;
+    setLoading(true);
     setError(null);
-    try {
-      const row = await rechargeService.fetchRechargeRequestById(id);
-      setData(row);
-      hasFetched.current = true;
-    } catch (e) {
-      setError(e instanceof Error ? e : new Error(String(e)));
-    } finally {
-      setLoading(false);
-    }
+
+    (async () => {
+      try {
+        const row = await rechargeService.fetchRechargeRequestById(id);
+        if (!cancelled) setData(row);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e : new Error(String(e)));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [id]);
 
-  useEffect(() => {
-    hasFetched.current = false;
-    refetch();
-  }, [refetch]);
-
-  useEffect(() => {
-    const onFocus = () => {
-      refetch();
-    };
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refetch]);
+  const refetch = useCallback(async () => {
+    if (!idRef.current) return;
+    setError(null);
+    try {
+      const row = await rechargeService.fetchRechargeRequestById(idRef.current);
+      setData(row);
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error(String(e)));
+    }
+  }, []);
 
   return { data, loading, error, refetch };
 }

@@ -8,36 +8,41 @@ export function useSupportRequests(filters?: { entity_id?: string | null; entity
   const [data, setData] = useState<RechargeRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const hasFetched = useRef(false);
+
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  const entityId = filters?.entity_id;
+  const entityStatus = filters?.entity_status;
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    (async () => {
+      try {
+        const list = await supportService.fetchSupportRechargeRequests(filtersRef.current);
+        if (!cancelled) setData(list);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e : new Error(String(e)));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [entityId, entityStatus]);
 
   const refetch = useCallback(async () => {
-    if (hasFetched.current) {
-      setLoading(false);
-    }
     setError(null);
     try {
-      const list = await supportService.fetchSupportRechargeRequests(filters);
+      const list = await supportService.fetchSupportRechargeRequests(filtersRef.current);
       setData(list);
-      hasFetched.current = true;
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
-    } finally {
-      setLoading(false);
     }
-  }, [filters?.entity_id, filters?.entity_status]);
-
-  useEffect(() => {
-    setLoading(true);
-    refetch();
-  }, [refetch]);
-
-  useEffect(() => {
-    const onFocus = () => {
-      refetch();
-    };
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refetch]);
+  }, []);
 
   return { data, loading, error, refetch };
 }
