@@ -70,8 +70,32 @@ export function useFinanceVerifyPaymentRechargeRequest() {
       await financeService.financeVerifyAndSendToOperations(vars.requestId);
       return vars;
     },
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["financeRechargeRequests"] });
+      const prev: PrevQueries = qc.getQueriesData<ListData>({
+        queryKey: ["financeRechargeRequests"],
+      });
+      const now = new Date().toISOString();
+
+      prev.forEach(([key, data]) => {
+        qc.setQueryData(
+          key,
+          patchRow(data, vars.requestId, {
+            finance_status: "verified",
+            operations_status: "processing",
+            updated_at: now,
+          })
+        );
+      });
+
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      ctx?.prev.forEach(([key, data]) => qc.setQueryData(key, data));
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["financeRechargeRequests"] });
+      qc.invalidateQueries({ queryKey: ["operationsRechargeRequests"] });
     },
   });
 }
@@ -83,6 +107,31 @@ export function useFinanceRejectVerificationRechargeRequest() {
     mutationFn: async (vars: { requestId: string; reason: string }) => {
       await financeService.financeRejectVerification(vars.requestId, vars.reason);
       return vars;
+    },
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["financeRechargeRequests"] });
+      const prev: PrevQueries = qc.getQueriesData<ListData>({
+        queryKey: ["financeRechargeRequests"],
+      });
+      const now = new Date().toISOString();
+
+      prev.forEach(([key, data]) => {
+        qc.setQueryData(
+          key,
+          patchRow(data, vars.requestId, {
+            finance_status: "rejected",
+            entity_status: "rejected",
+            operations_status: "cancelled",
+            remarks: vars.reason,
+            updated_at: now,
+          })
+        );
+      });
+
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      ctx?.prev.forEach(([key, data]) => qc.setQueryData(key, data));
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["financeRechargeRequests"] });

@@ -155,21 +155,16 @@ export async function financeReject(requestId: string, remarks?: string): Promis
   });
 }
 
-/** Finance: after Entity submitted payment (CT flow), verify and send to Operations. */
+/** Finance: after Entity submitted payment, verify and send to Operations for completion. */
 export async function financeVerifyAndSendToOperations(requestId: string): Promise<void> {
   const { fetchRechargeRequestById, updateRechargeRequest } = await import("./rechargeService");
   const row = await fetchRechargeRequestById(requestId);
   if (!row) throw new Error("Request not found");
-  if (row.tag_type !== "CT") throw new Error("Only CT flow is verified by Finance");
   if (row.finance_status !== "verification_pending") throw new Error("Request must be in verification pending state");
   if (row.entity_status !== "payment_submitted") throw new Error("Entity must submit payment first");
-  const currentOp = row.operations_status ?? "pending";
-  if (!canTransitionOperationsStatus(currentOp, "waiting_operations")) {
-    throw new Error("Invalid operations status transition");
-  }
   await updateRechargeRequest(requestId, {
     finance_status: "verified",
-    operations_status: "waiting_operations",
+    operations_status: "processing",
   });
 }
 

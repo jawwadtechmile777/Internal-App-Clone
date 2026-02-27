@@ -90,7 +90,10 @@ const SIDEBAR_CONFIG: Record<DepartmentSlug, SidebarItem[]> = {
     {
       type: "dropdown",
       label: "Operations",
-      children: [{ label: "Overview", href: "/dashboard/executive/operations" }],
+      children: [
+        { label: "Activities", href: "/dashboard/executive/operations/activities" },
+        { label: "Overview", href: "/dashboard/executive/operations" },
+      ],
     },
     {
       type: "dropdown",
@@ -122,7 +125,10 @@ const SIDEBAR_CONFIG: Record<DepartmentSlug, SidebarItem[]> = {
     {
       type: "dropdown",
       label: "Operations",
-      children: [{ label: "Overview", href: "/dashboard/operations" }],
+      children: [
+        { label: "Activities", href: "/dashboard/operations/activities" },
+        { label: "Overview", href: "/dashboard/operations" },
+      ],
     },
   ],
   verification: [

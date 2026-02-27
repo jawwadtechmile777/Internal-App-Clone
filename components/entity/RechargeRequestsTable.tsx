@@ -32,27 +32,15 @@ function computeStatus(r: RechargeRequestRow): string {
   if (r.operations_status === "completed") return "Completed";
   if (r.operations_status === "cancelled") return "Cancelled";
   if (r.operations_status === "rejected") return "Rejected (Operations)";
-
-  if (r.entity_status === "payment_submitted") return "Payment Submitted";
+  if (r.operations_status === "processing") return "Processing";
 
   if (r.finance_status === "verified") return "Finance Verified";
-  if (r.finance_status === "verification_pending") return "Waiting Finance Verification";
+  if (r.finance_status === "verification_pending") return "Verification Pending";
   if (r.finance_status === "rejected") return "Rejected (Finance)";
 
+  if (r.finance_status === "approved" && r.entity_status === "payment_submitted") return "Payment Submitted";
   if (r.finance_status !== "approved") return "Waiting Finance Approval";
-
   if (r.entity_status !== "payment_submitted") return "Waiting Payment Submission";
-
-  if (r.tag_type === "CT") {
-    if (r.operations_status === "waiting_operations") return "Waiting Operations";
-    return "Waiting Finance Verification";
-  }
-
-  if (r.tag_type === "PT") {
-    if (r.verification_status === "rejected") return "Rejected (Verification)";
-    if (r.verification_status === "approved") return "Waiting Operations";
-    return "Waiting Verification";
-  }
 
   return "In progress";
 }

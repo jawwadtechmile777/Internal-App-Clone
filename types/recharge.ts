@@ -3,6 +3,7 @@ export type RechargeEntityStatus =
   | "payment pending"
   | "payment_submitted"
   | "approved"
+  | "completed"
   | "rejected";
 
 export type RechargeFinanceStatus =
@@ -10,6 +11,7 @@ export type RechargeFinanceStatus =
   | "approved"
   | "verification_pending"
   | "verified"
+  | "completed"
   | "rejected";
 
 export type RechargeVerificationStatus =
@@ -22,6 +24,7 @@ export type RechargeOperationsStatus =
   | "pending"
   | "waiting_verification"
   | "waiting_operations"
+  | "processing"
   | "completed"
   | "rejected"
   | "cancelled";

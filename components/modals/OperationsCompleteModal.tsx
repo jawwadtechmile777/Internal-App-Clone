@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import type { RechargeRequestRow } from "@/types/recharge";
@@ -9,51 +9,63 @@ interface OperationsCompleteModalProps {
   open: boolean;
   onClose: () => void;
   row: RechargeRequestRow | null;
-  onComplete: (id: string) => Promise<void>;
+  loading?: boolean;
+  onConfirm: () => void | Promise<void>;
+}
+
+function formatAmount(n: number | null): string {
+  if (n == null) return "—";
+  return Number(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
 }
 
 export function OperationsCompleteModal({
   open,
   onClose,
   row,
-  onComplete,
+  loading,
+  onConfirm,
 }: OperationsCompleteModalProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleComplete = async () => {
-    if (!row) return;
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    if (open) setSubmitting(false);
+  }, [open]);
+
+  if (!row) return null;
+
+  const handleConfirm = async () => {
+    setSubmitting(true);
     try {
-      await onComplete(row.id);
-      onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      await onConfirm();
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  if (!row) return null;
-  const canComplete = row.operations_status === "waiting_operations";
+  const isLoading = loading || submitting;
 
   return (
-    <Modal open={open} onClose={onClose} title="Mark complete">
+    <Modal open={open} onClose={onClose} title="Complete Recharge?">
       <div className="space-y-4">
         <p className="text-sm text-gray-400">
-          Request <span className="font-mono text-gray-100">{row.id.slice(0, 8)}</span> — {row.entity?.name} / {row.player?.name}
+          This will finalize the recharge and mark all statuses as completed.
         </p>
-        {error && (
-          <div className="rounded-lg bg-red-900/40 border border-red-800 px-3 py-2 text-sm text-red-300">{error}</div>
-        )}
-        {canComplete ? (
-          <Button onClick={handleComplete} loading={loading}>
-            Mark as completed
+
+        <div className="rounded-lg border border-gray-700 bg-slate-900/40 px-3 py-2 text-sm text-gray-300">
+          <span className="font-mono text-gray-100">{row.id.slice(0, 8)}</span>
+          {" • "}{row.entity?.name ?? "—"}
+          {" • "}{row.player?.name ?? "—"}
+          {" • "}{formatAmount(row.final_amount ?? row.amount)}
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="ghost" onClick={onClose} disabled={isLoading}>
+            Cancel
           </Button>
-        ) : (
-          <p className="text-sm text-gray-500">Only requests in waiting_operations can be completed.</p>
-        )}
+          <Button variant="primary" onClick={handleConfirm} loading={isLoading} disabled={isLoading}>
+            Confirm
+          </Button>
+        </div>
       </div>
     </Modal>
   );

@@ -2,20 +2,18 @@
 
 import { safeParsePaymentDetails } from "@/lib/safeJson";
 import { StatusBadge } from "@/components/entity/StatusBadge";
-import { CheckCircle2, Eye, Image as ImageIcon, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Eye, Loader2, XCircle } from "lucide-react";
 import type { RechargeRequestRow } from "@/types/recharge";
 
-interface FinanceRechargeRequestsTableProps {
+interface OperationsRechargeRequestsTableProps {
   rows: RechargeRequestRow[];
   loading?: boolean;
   emptyMessage?: string;
   busyId?: string | null;
-  busyAction?: "approve" | "reject" | "verify" | "reject_verification" | null;
+  busyAction?: "complete" | "reject" | null;
   onView: (row: RechargeRequestRow) => void;
-  onApprove: (row: RechargeRequestRow) => void;
+  onComplete: (row: RechargeRequestRow) => void;
   onReject: (row: RechargeRequestRow) => void;
-  onVerify?: (row: RechargeRequestRow) => void;
-  onRejectVerification?: (row: RechargeRequestRow) => void;
 }
 
 function formatDate(iso: string | null): string {
@@ -35,16 +33,14 @@ function formatAmount(n: number | null): string {
 function computeStatus(r: RechargeRequestRow): string {
   if (r.operations_status === "completed") return "Completed";
   if (r.operations_status === "cancelled") return "Cancelled";
-  if (r.operations_status === "rejected") return "Rejected (Operations)";
+  if (r.operations_status === "rejected") return "Rejected";
   if (r.operations_status === "processing") return "Processing";
-
   if (r.finance_status === "verified") return "Finance Verified";
   if (r.finance_status === "verification_pending") return "Verification Pending";
   if (r.finance_status === "rejected") return "Rejected (Finance)";
   if (r.finance_status !== "approved") return "Waiting Finance Approval";
-  if (r.entity_status !== "payment_submitted") return "Waiting Payment Submission";
-
-  return "Payment Submitted";
+  if (r.entity_status !== "payment_submitted") return "Waiting Payment";
+  return "In progress";
 }
 
 function bonusDisplay(r: RechargeRequestRow): string {
@@ -74,10 +70,7 @@ function tagDetails(r: RechargeRequestRow): string {
     const bank = acct.payment_method?.name ? `${acct.payment_method.name} • ` : "";
     const holder = acct.holder_name ? ` • ${acct.holder_name}` : "";
     const iban = acct.iban ? ` • ${acct.iban}` : "";
-    const branch = (acct as unknown as { branch_name?: string | null }).branch_name
-      ? ` • ${(acct as unknown as { branch_name?: string | null }).branch_name}`
-      : "";
-    return `${bank}${acct.account_name} • ${acct.account_number}${holder}${iban}${branch}`;
+    return `${bank}${acct.account_name} • ${acct.account_number}${holder}${iban}`;
   }
   const pt = r.pt_payment_method;
   if (!pt) return "PT • —";
@@ -91,18 +84,16 @@ function tagDetails(r: RechargeRequestRow): string {
   return key ? `${pt.method_name} • ${key}` : pt.method_name;
 }
 
-export function FinanceRechargeRequestsTable({
+export function OperationsRechargeRequestsTable({
   rows,
   loading,
   emptyMessage = "No recharge requests.",
   busyId,
   busyAction,
   onView,
-  onApprove,
+  onComplete,
   onReject,
-  onVerify,
-  onRejectVerification,
-}: FinanceRechargeRequestsTableProps) {
+}: OperationsRechargeRequestsTableProps) {
   if (loading) {
     return (
       <div className="rounded-xl border border-gray-700 bg-slate-800/50 px-4 py-10 text-center text-sm text-gray-400">
@@ -124,7 +115,6 @@ export function FinanceRechargeRequestsTable({
       <table className="min-w-full divide-y divide-gray-700 text-left text-sm">
         <thead className="bg-slate-800">
           <tr>
-            <th className="w-12 px-2 py-3 font-medium text-gray-300 text-center">Proof</th>
             <th className="px-4 py-3 font-medium text-gray-300">Entity</th>
             <th className="px-4 py-3 font-medium text-gray-300">Player</th>
             <th className="px-4 py-3 font-medium text-gray-300">Game</th>
@@ -142,30 +132,12 @@ export function FinanceRechargeRequestsTable({
         <tbody className="divide-y divide-gray-700 bg-slate-800/30">
           {rows.map((r) => {
             const status = computeStatus(r);
-            const isPending = r.finance_status === "pending";
-            const isVerificationPending = r.finance_status === "verification_pending";
+            const canAct = r.operations_status === "processing";
             const rowBusy = busyId === r.id;
-            const approveLoading = rowBusy && busyAction === "approve";
+            const completeLoading = rowBusy && busyAction === "complete";
             const rejectLoading = rowBusy && busyAction === "reject";
-            const verifyLoading = rowBusy && busyAction === "verify";
-            const rejectVerificationLoading = rowBusy && busyAction === "reject_verification";
             return (
               <tr key={r.id} className="hover:bg-slate-700/40">
-                <td className="w-12 px-2 py-3 text-center">
-                  {r.entity_payment_proof_path ? (
-                    <a
-                      href={r.entity_payment_proof_path}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-sky-400 hover:bg-slate-700/60 hover:text-sky-300 focus:outline-none focus:ring-2 focus:ring-slate-500"
-                      title="View payment proof"
-                    >
-                      <ImageIcon className="h-4 w-4" />
-                    </a>
-                  ) : (
-                    <span className="text-xs text-gray-600">—</span>
-                  )}
-                </td>
                 <td className="px-4 py-3 text-gray-100">{r.entity?.name ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-100">{r.player?.name ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-300">{r.game?.name ?? "—"}</td>
@@ -191,16 +163,16 @@ export function FinanceRechargeRequestsTable({
                       <Eye className="h-4 w-4" />
                     </button>
 
-                    {isPending ? (
+                    {canAct ? (
                       <>
                         <button
                           type="button"
-                          onClick={() => onApprove(r)}
+                          onClick={() => onComplete(r)}
                           disabled={rowBusy}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-600 text-white hover:bg-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50"
-                          title="Approve"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                          title="Complete"
                         >
-                          {approveLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                          {completeLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                         </button>
                         <button
                           type="button"
@@ -210,27 +182,6 @@ export function FinanceRechargeRequestsTable({
                           title="Reject"
                         >
                           {rejectLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-                        </button>
-                      </>
-                    ) : isVerificationPending && onVerify && onRejectVerification ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => onVerify(r)}
-                          disabled={rowBusy}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                          title="Verify and send to Operations"
-                        >
-                          {verifyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onRejectVerification(r)}
-                          disabled={rowBusy}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-red-600 text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
-                          title="Reject verification"
-                        >
-                          {rejectVerificationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
                         </button>
                       </>
                     ) : null}
@@ -244,4 +195,3 @@ export function FinanceRechargeRequestsTable({
     </div>
   );
 }
-
