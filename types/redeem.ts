@@ -42,3 +42,21 @@ export interface RedeemRequestCreateInput {
   created_by: string;
 }
 
+export interface RedeemRequestUpdateInput {
+  operations_status?: string;
+  verification_status?: string;
+  finance_status?: string;
+  support_status?: string;
+  status?: string;
+  paid_amount?: number;
+  remaining_amount?: number;
+  hold_amount?: number;
+}
+
+export interface RedeemFilters {
+  operations_status?: string;
+  verification_status?: string;
+  finance_status?: string;
+  remaining_gt_zero?: boolean;
+}
+

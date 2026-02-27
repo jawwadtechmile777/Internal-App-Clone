@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabaseClient";
-import type { RedeemRequestCreateInput, RedeemRequestRow } from "@/types/redeem";
+import type {
+  RedeemRequestCreateInput,
+  RedeemRequestRow,
+  RedeemRequestUpdateInput,
+  RedeemFilters,
+} from "@/types/redeem";
 
 const supabase = createClient();
 
@@ -68,15 +73,24 @@ export async function fetchRedeemRequests(filters: { entity_id: string }): Promi
 export async function fetchRedeemRequestsPaged(params: {
   page: number;
   pageSize: number;
+  filters?: RedeemFilters;
 }): Promise<{ rows: RedeemRequestRow[]; total: number }> {
   const page = Math.max(1, params.page);
   const pageSize = Math.min(100, Math.max(1, params.pageSize));
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  const { data, error, count } = await supabase
+  let query = supabase
     .from("redeem_requests")
-    .select(REDEEM_SELECT, { count: "exact" })
+    .select(REDEEM_SELECT, { count: "exact" });
+
+  const f = params.filters;
+  if (f?.operations_status) query = query.eq("operations_status", f.operations_status);
+  if (f?.verification_status) query = query.eq("verification_status", f.verification_status);
+  if (f?.finance_status) query = query.eq("finance_status", f.finance_status);
+  if (f?.remaining_gt_zero) query = query.gt("remaining_amount", 0);
+
+  const { data, error, count } = await query
     .order("created_at", { ascending: false })
     .range(from, to);
 
@@ -115,11 +129,11 @@ export async function createRedeemRequest(input: RedeemRequestCreateInput): Prom
     hold_amount: 0,
     remaining_amount: total,
     flow_type: input.flow_type ?? "PT",
-    support_status: "requested",
+    support_status: "submitted",
     verification_status: "pending",
-    operations_status: "processing",
+    operations_status: "pending",
     finance_status: "pending",
-    status: "operation processing",
+    status: "pending",
     created_by: input.created_by,
   };
 
@@ -145,5 +159,101 @@ export async function fetchEligiblePTRedeems(entityId: string): Promise<RedeemRe
     .order("created_at", { ascending: false });
   if (error) throw error;
   return ((data ?? []) as Record<string, unknown>[]).map(mapRow);
+}
+
+/* ──────────────── Update helpers ──────────────── */
+
+export async function updateRedeemRequest(
+  id: string,
+  update: RedeemRequestUpdateInput
+): Promise<void> {
+  const { error } = await supabase
+    .from("redeem_requests")
+    .update({ ...update, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/* ──────────────── Department actions ──────────────── */
+
+/**
+ * Operations: mark redeem request as processed.
+ * Pre-condition: operations_status = 'pending'
+ */
+export async function processRedeemOperation(id: string): Promise<void> {
+  const row = await fetchRedeemRequestById(id);
+  if (!row) throw new Error("Redeem request not found");
+  if (row.operations_status !== "pending") {
+    throw new Error("Only pending redeem requests can be processed by Operations");
+  }
+  await updateRedeemRequest(id, {
+    operations_status: "processed",
+    status: "processing",
+  });
+}
+
+/**
+ * Verification: mark redeem request as verified.
+ * Pre-condition: verification_status = 'pending'
+ * Accepts operations_status 'processed' (new flow) or 'processing' (legacy data).
+ */
+export async function verifyRedeemRequest(id: string): Promise<void> {
+  const row = await fetchRedeemRequestById(id);
+  if (!row) throw new Error("Redeem request not found");
+  if (row.verification_status !== "pending") {
+    throw new Error(
+      `This request cannot be verified (verification_status is '${row.verification_status}', expected 'pending')`
+    );
+  }
+  await updateRedeemRequest(id, {
+    verification_status: "verified",
+    status: "verified",
+  });
+}
+
+/**
+ * Finance: process payment (partial or full).
+ * Pre-condition: verification_status = 'verified' AND remaining_amount > 0
+ * Invariant: paid_amount + remaining_amount = total_amount (always)
+ */
+export async function processRedeemPayment(
+  id: string,
+  paymentAmount: number
+): Promise<void> {
+  const row = await fetchRedeemRequestById(id);
+  if (!row) throw new Error("Redeem request not found");
+  if (row.verification_status !== "verified") {
+    throw new Error("Only verified redeem requests can receive payment");
+  }
+  if (row.remaining_amount <= 0) {
+    throw new Error("This redeem request is already fully paid");
+  }
+  if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+    throw new Error("Payment amount must be greater than 0");
+  }
+  if (paymentAmount > row.remaining_amount) {
+    throw new Error(
+      `Payment amount (${paymentAmount}) cannot exceed remaining amount (${row.remaining_amount})`
+    );
+  }
+
+  const newPaidAmount = row.paid_amount + paymentAmount;
+  const newRemainingAmount = row.total_amount - newPaidAmount;
+
+  if (newPaidAmount > row.total_amount) {
+    throw new Error("Payment would exceed total amount");
+  }
+  if (newRemainingAmount < 0) {
+    throw new Error("Payment would result in negative remaining amount");
+  }
+
+  const isFullyPaid = newRemainingAmount === 0;
+
+  await updateRedeemRequest(id, {
+    paid_amount: newPaidAmount,
+    remaining_amount: newRemainingAmount,
+    finance_status: isFullyPaid ? "completed" : "partial",
+    status: isFullyPaid ? "completed" : "partially_completed",
+  });
 }
 

@@ -8,6 +8,7 @@ import { RechargeDetailModal } from "@/components/modals/RechargeDetailModal";
 import { AssignPaymentAccountModal } from "@/components/modals/AssignPaymentAccountModal";
 import { FinanceRejectReasonModal } from "@/components/modals/FinanceRejectReasonModal";
 import { FinanceVerifyPaymentModal } from "@/components/modals/FinanceVerifyPaymentModal";
+import { FinancePayRedeemModal } from "@/components/modals/FinancePayRedeemModal";
 import { RedeemDetailModal } from "@/components/modals/RedeemDetailModal";
 import { RequestDetailModal } from "@/components/modals/RequestDetailModal";
 import { useFinanceRechargeRequestsQuery } from "@/hooks/useFinanceRechargeRequestsQuery";
@@ -18,11 +19,12 @@ import {
   useFinanceRejectVerificationRechargeRequest,
   useFinanceApprovePTRechargeRequest,
 } from "@/hooks/useFinanceRechargeMutations";
+import { useFinancePayRedeem } from "@/hooks/useRedeemMutations";
 import { useToast } from "@/hooks/useToast";
 import type { RechargeFinanceStatus, RechargeRequestRow } from "@/types/recharge";
 import type { RedeemRequestRow } from "@/types/redeem";
 import type { AppRequestRow } from "@/types/request";
-import { useFinanceRedeemRequestsQuery } from "@/hooks/useFinanceRedeemRequestsQuery";
+import { useFinanceRedeemRequestsQuery, type FinanceRedeemFilter } from "@/hooks/useFinanceRedeemRequestsQuery";
 import { useFinanceRequestsByTypeQuery } from "@/hooks/useFinanceRequestsByTypeQuery";
 
 type ActivityListTab =
@@ -44,20 +46,20 @@ export default function FinanceActivitiesPage() {
 
   const [listTab, setListTab] = useState<ActivityListTab>("recharge");
   const [rechargeFilter, setRechargeFilter] = useState<RechargeFinanceStatus | "all">("all");
+  const [redeemFilter, setRedeemFilter] = useState<FinanceRedeemFilter>("actionable");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // reset pagination when switching tabs
   useEffect(() => {
     setPage(1);
-  }, [listTab, pageSize]);
+  }, [listTab, pageSize, redeemFilter]);
 
   const rechargeQuery = useFinanceRechargeRequestsQuery({
     page,
     pageSize,
     finance_status: rechargeFilter === "all" ? undefined : rechargeFilter,
   });
-  const redeemQuery = useFinanceRedeemRequestsQuery({ page, pageSize });
+  const redeemQuery = useFinanceRedeemRequestsQuery({ page, pageSize, filter: redeemFilter });
   const genericQuery = useFinanceRequestsByTypeQuery(
     listTab === "transfer" ||
       listTab === "reset_password" ||
@@ -73,6 +75,7 @@ export default function FinanceActivitiesPage() {
   const rejectMutation = useFinanceRejectRechargeRequest();
   const verifyMutation = useFinanceVerifyPaymentRechargeRequest();
   const rejectVerificationMutation = useFinanceRejectVerificationRechargeRequest();
+  const payRedeemMutation = useFinancePayRedeem();
 
   const approveLoading = approveMutation.isPending || approvePTMutation.isPending;
 
@@ -105,6 +108,7 @@ export default function FinanceActivitiesPage() {
   const [rejectRow, setRejectRow] = useState<RechargeRequestRow | null>(null);
   const [verifyRow, setVerifyRow] = useState<RechargeRequestRow | null>(null);
   const [rejectVerificationRow, setRejectVerificationRow] = useState<RechargeRequestRow | null>(null);
+  const [payRedeemRow, setPayRedeemRow] = useState<RedeemRequestRow | null>(null);
 
   const listTabs: { key: ActivityListTab; label: string }[] = [
     { key: "recharge", label: "Recharge Requests" },
@@ -228,6 +232,22 @@ export default function FinanceActivitiesPage() {
         </>
       ) : listTab === "redeem" ? (
         <>
+          <div className="flex flex-wrap gap-2">
+            {(["actionable", "completed", "all"] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => { setRedeemFilter(f); setPage(1); }}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+                  redeemFilter === f
+                    ? "bg-slate-600 text-white"
+                    : "bg-slate-800 text-gray-300 hover:bg-slate-700 hover:text-gray-100"
+                }`}
+              >
+                {f === "actionable" ? "Pending Payment" : f === "completed" ? "Completed" : "All"}
+              </button>
+            ))}
+          </div>
           {redeemQuery.error ? (
             <div className="rounded-lg border border-red-800 bg-red-900/40 px-4 py-3 text-sm text-red-300">
               {redeemQuery.error instanceof Error ? redeemQuery.error.message : "Failed to load redeem requests."}
@@ -236,8 +256,10 @@ export default function FinanceActivitiesPage() {
           <FinanceRedeemRequestsTable
             rows={redeemQuery.data?.rows ?? []}
             loading={redeemQuery.isLoading && !redeemQuery.data}
+            busyId={payRedeemMutation.isPending ? payRedeemMutation.variables?.redeemId ?? null : null}
             emptyMessage="No redeem requests."
             onView={(row) => setRedeemDetail(row)}
+            onPay={(row) => setPayRedeemRow(row)}
           />
         </>
       ) : (
@@ -396,6 +418,31 @@ export default function FinanceActivitiesPage() {
               variant: "error",
               title: "Reject failed",
               description: e instanceof Error ? e.message : "Unable to reject verification.",
+            });
+          }
+        }}
+      />
+
+      <FinancePayRedeemModal
+        open={!!payRedeemRow}
+        onClose={() => setPayRedeemRow(null)}
+        row={payRedeemRow}
+        loading={payRedeemMutation.isPending}
+        onConfirm={async (amount) => {
+          if (!payRedeemRow) return;
+          try {
+            await payRedeemMutation.mutateAsync({ redeemId: payRedeemRow.id, paymentAmount: amount });
+            const newRemaining = payRedeemRow.total_amount - (payRedeemRow.paid_amount + amount);
+            const desc = newRemaining === 0
+              ? "Redeem request fully paid and completed."
+              : `Payment recorded. Remaining: ${newRemaining.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+            showToast({ variant: "success", title: "Payment Processed", description: desc });
+            setPayRedeemRow(null);
+          } catch (e) {
+            showToast({
+              variant: "error",
+              title: "Payment failed",
+              description: e instanceof Error ? e.message : "Unable to process payment.",
             });
           }
         }}

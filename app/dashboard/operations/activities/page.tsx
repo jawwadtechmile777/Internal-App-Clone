@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { OperationsRechargeRequestsTable } from "@/components/operations/OperationsRechargeRequestsTable";
-import { FinanceRedeemRequestsTable } from "@/components/finance/FinanceRedeemRequestsTable";
+import { OperationsRedeemRequestsTable } from "@/components/operations/OperationsRedeemRequestsTable";
 import { RequestsTable, type RequestTableRow } from "@/components/entity/RequestsTable";
 import { RechargeDetailModal } from "@/components/modals/RechargeDetailModal";
 import { OperationsCompleteModal } from "@/components/modals/OperationsCompleteModal";
+import { OperationsProcessRedeemModal } from "@/components/modals/OperationsProcessRedeemModal";
 import { FinanceRejectReasonModal } from "@/components/modals/FinanceRejectReasonModal";
 import { RedeemDetailModal } from "@/components/modals/RedeemDetailModal";
 import { RequestDetailModal } from "@/components/modals/RequestDetailModal";
@@ -14,7 +15,8 @@ import {
   useOperationsCompleteRechargeRequest,
   useOperationsRejectRechargeRequest,
 } from "@/hooks/useOperationsMutations";
-import { useFinanceRedeemRequestsQuery } from "@/hooks/useFinanceRedeemRequestsQuery";
+import { useOperationsRedeemRequestsQuery } from "@/hooks/useOperationsRedeemRequestsQuery";
+import { useOperationsProcessRedeem } from "@/hooks/useRedeemMutations";
 import { useFinanceRequestsByTypeQuery } from "@/hooks/useFinanceRequestsByTypeQuery";
 import { useToast } from "@/hooks/useToast";
 import type { RechargeRequestRow, RechargeOperationsStatus } from "@/types/recharge";
@@ -42,19 +44,20 @@ export default function OperationsActivitiesPage() {
 
   const [listTab, setListTab] = useState<ActivityListTab>("recharge");
   const [rechargeFilter, setRechargeFilter] = useState<OpsRechargeFilter>("all");
+  const [redeemFilter, setRedeemFilter] = useState<"pending" | "all">("pending");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
   useEffect(() => {
     setPage(1);
-  }, [listTab, pageSize, rechargeFilter]);
+  }, [listTab, pageSize, rechargeFilter, redeemFilter]);
 
   const rechargeQuery = useOperationsRechargeRequestsQuery({
     page,
     pageSize,
     operations_status: rechargeFilter === "all" ? "all" : rechargeFilter,
   });
-  const redeemQuery = useFinanceRedeemRequestsQuery({ page, pageSize });
+  const redeemQuery = useOperationsRedeemRequestsQuery({ page, pageSize, filter: redeemFilter });
   const genericQuery = useFinanceRequestsByTypeQuery(
     listTab === "transfer" ||
       listTab === "reset_password" ||
@@ -67,6 +70,7 @@ export default function OperationsActivitiesPage() {
 
   const completeMutation = useOperationsCompleteRechargeRequest();
   const rejectMutation = useOperationsRejectRechargeRequest();
+  const processRedeemMutation = useOperationsProcessRedeem();
 
   const busyId =
     completeMutation.isPending
@@ -85,6 +89,7 @@ export default function OperationsActivitiesPage() {
   const [requestDetail, setRequestDetail] = useState<AppRequestRow | null>(null);
   const [completeRow, setCompleteRow] = useState<RechargeRequestRow | null>(null);
   const [rejectRow, setRejectRow] = useState<RechargeRequestRow | null>(null);
+  const [processRedeemRow, setProcessRedeemRow] = useState<RedeemRequestRow | null>(null);
 
   const listTabs: { key: ActivityListTab; label: string }[] = [
     { key: "recharge", label: "Recharge Requests" },
@@ -195,16 +200,42 @@ export default function OperationsActivitiesPage() {
         </>
       ) : listTab === "redeem" ? (
         <>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setRedeemFilter("pending")}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+                redeemFilter === "pending"
+                  ? "bg-slate-600 text-white"
+                  : "bg-slate-800 text-gray-300 hover:bg-slate-700 hover:text-gray-100"
+              }`}
+            >
+              Pending
+            </button>
+            <button
+              type="button"
+              onClick={() => setRedeemFilter("all")}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+                redeemFilter === "all"
+                  ? "bg-slate-600 text-white"
+                  : "bg-slate-800 text-gray-300 hover:bg-slate-700 hover:text-gray-100"
+              }`}
+            >
+              All
+            </button>
+          </div>
           {redeemQuery.error ? (
             <div className="rounded-lg border border-red-800 bg-red-900/40 px-4 py-3 text-sm text-red-300">
               {redeemQuery.error instanceof Error ? redeemQuery.error.message : "Failed to load redeem requests."}
             </div>
           ) : null}
-          <FinanceRedeemRequestsTable
+          <OperationsRedeemRequestsTable
             rows={redeemQuery.data?.rows ?? []}
             loading={redeemQuery.isLoading && !redeemQuery.data}
+            busyId={processRedeemMutation.isPending ? processRedeemMutation.variables?.redeemId ?? null : null}
             emptyMessage="No redeem requests."
             onView={(row) => setRedeemDetail(row)}
+            onProcess={(row) => setProcessRedeemRow(row)}
           />
         </>
       ) : (
@@ -307,6 +338,27 @@ export default function OperationsActivitiesPage() {
               variant: "error",
               title: "Reject failed",
               description: e instanceof Error ? e.message : "Unable to reject request.",
+            });
+          }
+        }}
+      />
+
+      <OperationsProcessRedeemModal
+        open={!!processRedeemRow}
+        onClose={() => setProcessRedeemRow(null)}
+        row={processRedeemRow}
+        loading={processRedeemMutation.isPending}
+        onConfirm={async () => {
+          if (!processRedeemRow) return;
+          try {
+            await processRedeemMutation.mutateAsync({ redeemId: processRedeemRow.id });
+            showToast({ variant: "success", title: "Processed", description: "Redeem request sent to Verification." });
+            setProcessRedeemRow(null);
+          } catch (e) {
+            showToast({
+              variant: "error",
+              title: "Process failed",
+              description: e instanceof Error ? e.message : "Unable to process redeem request.",
             });
           }
         }}

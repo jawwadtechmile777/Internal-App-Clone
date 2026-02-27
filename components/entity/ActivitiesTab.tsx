@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { RequestsTable, type RequestTableRow } from "@/components/entity/RequestsTable";
 import { RechargeRequestsTable } from "@/components/entity/RechargeRequestsTable";
+import { RedeemRequestsTable } from "@/components/entity/RedeemRequestsTable";
 import { useRechargeRequests } from "@/hooks/useRechargeRequests";
 import { useRedeemRequests } from "@/hooks/useRedeemRequests";
 import { useRequests } from "@/hooks/useRequests";
@@ -82,15 +83,7 @@ export function ActivitiesTab({ entityId, actorUserId, restrictedEntityId }: Act
     }));
   }, [recharge.data]);
 
-  const redeemRows: RequestTableRow[] = useMemo(() => {
-    return redeem.data.map((r) => ({
-      id: r.id,
-      player: r.player?.name ?? r.player_id,
-      amount: formatAmount(r.total_amount),
-      status: r.status ?? "pending",
-      created_at: r.created_at,
-    }));
-  }, [redeem.data]);
+  // redeem rows rendered directly via RedeemRequestsTable
 
   const activeTabButton = "bg-slate-600 text-white";
   const inactiveTabButton = "bg-slate-800 text-gray-300 hover:bg-slate-700 hover:text-gray-100";
@@ -170,23 +163,12 @@ export function ActivitiesTab({ entityId, actorUserId, restrictedEntityId }: Act
       )}
 
       {listTab === "redeem" && (
-        <RequestsTable
+        <RedeemRequestsTable
           headerContent={headerTabs}
-          rows={redeemRows}
+          rows={redeem.data}
           loading={redeem.loading}
           emptyMessage="No redeem requests for this entity."
-          renderActions={(row) => (
-            <button
-              type="button"
-              onClick={() => {
-                const full = redeem.data.find((x) => x.id === row.id) ?? null;
-                setRedeemDetail(full);
-              }}
-              className="rounded bg-slate-700 px-2 py-1 text-xs text-white hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500"
-            >
-              View
-            </button>
-          )}
+          onView={(row) => setRedeemDetail(row)}
         />
       )}
 

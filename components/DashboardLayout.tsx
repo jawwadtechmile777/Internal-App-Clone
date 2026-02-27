@@ -81,7 +81,7 @@ function SidebarDropdownItem({
   pathname: string | null;
 }) {
   const isDropdownActive = item.children.some(
-    (c) => pathname === c.href || (c.href !== "/dashboard" && pathname?.startsWith(c.href))
+    (c) => pathname === c.href || (c.href !== "/dashboard" && pathname?.startsWith(c.href + "/"))
   );
 
   const [open, setOpen] = useState(isDropdownActive);
@@ -103,19 +103,24 @@ function SidebarDropdownItem({
       </button>
       {expanded ? (
         <div className="ml-3 space-y-0.5 border-l border-gray-700 pl-2">
-          {item.children.map((child) => {
-            const isChildActive =
-              pathname === child.href || (child.href !== "/dashboard" && pathname?.startsWith(child.href));
-            return (
-              <Link
-                key={child.href}
-                href={child.href}
-                className={`block rounded px-2 py-1.5 text-sm ${isChildActive ? "bg-slate-700/80 text-gray-100" : "text-gray-400 hover:bg-slate-700/50 hover:text-gray-200"}`}
-              >
-                {child.label}
-              </Link>
-            );
-          })}
+          {(() => {
+            const bestMatch = item.children
+              .filter((c) => pathname === c.href || (c.href !== "/dashboard" && pathname?.startsWith(c.href + "/")))
+              .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
+
+            return item.children.map((child) => {
+              const isChildActive = child.href === bestMatch || pathname === child.href;
+              return (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  className={`block rounded px-2 py-1.5 text-sm ${isChildActive ? "bg-slate-700/80 text-gray-100" : "text-gray-400 hover:bg-slate-700/50 hover:text-gray-200"}`}
+                >
+                  {child.label}
+                </Link>
+              );
+            });
+          })()}
         </div>
       ) : null}
     </div>
