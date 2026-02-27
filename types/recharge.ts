@@ -72,6 +72,17 @@ export interface RechargeRequestRow {
     holder_name: string;
     payment_method?: { id: string; name: string } | null;
   } | null;
+  /** Linked redeem request (PT flow only, FK: pt_redeem_id). */
+  pt_redeem?: {
+    id: string;
+    player_id: string;
+    total_amount: number;
+    remaining_amount: number;
+    hold_amount: number;
+    status: string | null;
+    player?: { id: string; name: string; entity_id: string } | null;
+    payment_method?: { id: string; method_name: string; details: Record<string, unknown> } | null;
+  } | null;
   requested_by_user?: { id: string } | null;
 }
 

@@ -98,7 +98,10 @@ const SIDEBAR_CONFIG: Record<DepartmentSlug, SidebarItem[]> = {
     {
       type: "dropdown",
       label: "Verification",
-      children: [{ label: "Overview", href: "/dashboard/executive/verification" }],
+      children: [
+        { label: "Activities", href: "/dashboard/executive/verification/activities" },
+        { label: "Overview", href: "/dashboard/executive/verification" },
+      ],
     },
   ],
   support: [
@@ -136,7 +139,10 @@ const SIDEBAR_CONFIG: Record<DepartmentSlug, SidebarItem[]> = {
     {
       type: "dropdown",
       label: "Verification",
-      children: [{ label: "Overview", href: "/dashboard/verification" }],
+      children: [
+        { label: "Activities", href: "/dashboard/verification/activities" },
+        { label: "Overview", href: "/dashboard/verification" },
+      ],
     },
   ],
 };

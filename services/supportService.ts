@@ -16,7 +16,7 @@ export async function fetchSupportRechargeRequests(filters?: {
   });
 }
 
-/** Support: submit payment proof and move to next step (Finance for CT, Verification for PT). */
+/** Support: submit payment proof and move to next step. CT → Finance verification_pending. PT → stays with Verification (verification_status already 'pending'). */
 export async function supportSubmitPaymentProof(
   requestId: string,
   entityPaymentProofPath: string,
@@ -28,12 +28,15 @@ export async function supportSubmitPaymentProof(
   if (!row) throw new Error("Request not found");
   if (row.entity_status === "payment_submitted") throw new Error("Payment already submitted");
   if (row.finance_status !== "approved") throw new Error("Finance must approve before Support can submit payment");
+
+  const isPT = row.tag_type === "PT";
+
   await updateRechargeRequest(requestId, {
     entity_status: "payment_submitted",
     entity_payment_proof_path: entityPaymentProofPath,
     entity_payment_submitted_at: new Date().toISOString(),
     payment_method_account_id: paymentMethodAccountId ?? row.payment_method_account_id,
-    finance_status: "verification_pending",
+    ...(isPT ? {} : { finance_status: "verification_pending" }),
     remarks: notes?.trim() ? notes.trim() : row.remarks,
   });
 }

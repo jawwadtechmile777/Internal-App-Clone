@@ -65,7 +65,9 @@ export default function OperationsDashboardPage() {
         </div>
         <div className="flex gap-2">
           {filterBtn("Processing", "processing")}
+          {filterBtn("Waiting", "waiting_operations")}
           {filterBtn("Completed", "completed")}
+          {filterBtn("All", "all")}
         </div>
       </div>
 
@@ -83,7 +85,12 @@ export default function OperationsDashboardPage() {
         onView={(r) => setDetailRow(r)}
         onComplete={(r) => setCompleteRow(r)}
         onReject={(r) => setRejectRow(r)}
-        emptyMessage={filter === "processing" ? "No requests awaiting completion." : "No completed requests."}
+        emptyMessage={
+          filter === "processing" ? "No CT requests awaiting completion." :
+          filter === "waiting_operations" ? "No PT requests awaiting operations." :
+          filter === "completed" ? "No completed requests." :
+          "No requests."
+        }
       />
 
       <RechargeDetailModal open={!!detailRow} onClose={() => setDetailRow(null)} row={detailRow} />

@@ -109,13 +109,18 @@ export async function createRedeemRequest(input: RedeemRequestCreateInput): Prom
     entity_id: input.entity_id,
     player_id: input.player_id,
     game_id: input.game_id ?? null,
+    payment_method_id: input.payment_method_id ?? null,
     total_amount: total,
     paid_amount: 0,
     hold_amount: 0,
     remaining_amount: total,
     flow_type: input.flow_type ?? "PT",
+    support_status: "requested",
+    verification_status: "pending",
+    operations_status: "processing",
+    finance_status: "pending",
+    status: "operation processing",
     created_by: input.created_by,
-    remarks: input.remarks ?? null,
   };
 
   const { data, error } = await supabase

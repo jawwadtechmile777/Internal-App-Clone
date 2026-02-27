@@ -36,9 +36,9 @@ export interface RedeemRequestCreateInput {
   entity_id: string;
   player_id: string;
   game_id?: string | null;
+  payment_method_id?: string | null;
   total_amount: number;
   flow_type?: RedeemFlowType;
   created_by: string;
-  remarks?: string | null;
 }
 

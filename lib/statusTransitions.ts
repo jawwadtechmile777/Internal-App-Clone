@@ -5,10 +5,10 @@ const ALLOWED_OPERATIONS_TRANSITIONS: Record<
   RechargeOperationsStatus,
   RechargeOperationsStatus[]
 > = {
-  pending: ["processing", "waiting_operations"],
+  pending: ["processing", "waiting_operations", "waiting_verification"],
   waiting_verification: ["waiting_operations"],
-  waiting_operations: ["completed"],
-  processing: ["completed"],
+  waiting_operations: ["completed", "rejected"],
+  processing: ["completed", "rejected"],
   completed: [],
   rejected: [],
   cancelled: [],
